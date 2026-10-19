@@ -1353,7 +1353,7 @@ body.chrome-hidden {
  <!-- Swipe-down search bar -->
  <div class="search-bar" id="searchBar">
  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
- <input class="search-inp" id="searchInp" placeholder="Zoek in de Bijbel..." oninput="doSearch(this.value)" onkeydown="if(event.key==='Enter'){doSearch(this.value,true);event.preventDefault();}">
+ <input class="search-inp" id="searchInp" placeholder="Zoek in de Bijbel en commentaren..." oninput="doSearch(this.value)" onkeydown="if(event.key==='Enter'){doSearch(this.value,true);event.preventDefault();}">
  <button class="search-close" id="aiFindBtn" onclick="openAIFind()" title="AI verse finder" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:4px;margin-right:2px">
  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="2" stroke-linecap="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/><circle cx="12" cy="12" r="3"/></svg>
  </button>
@@ -20354,7 +20354,7 @@ const UI={
  en:{
  read:'Read',hist:'History',plans:'Plans',more:'More',
  prev:'Prev',next:'Next',cancel:_X('Cancel','Cancelar','Annuleren','Abbrechen'),save:_X('Save','Guardar','Opslaan','Speichern'),
- search_ph:'Search the Bible\u2026',
+ search_ph:'Search the Bible and commentaries\u2026',
  egw_ph:'EGW Estate API integration coming.',
  pioneer_ph:'My notes will appear here.',
  sdabc_ph:'SDA Bible Commentary coming.',
@@ -20406,7 +20406,7 @@ const UI={
  nl:{
  read:'Lezen',hist:'Geschiedenis',plans:'Plannen',more:'Meer',
  prev:'Vorige',next:'Volgende',cancel:'Annuleer',save:'Opslaan',
- search_ph:'Zoek in de Bijbel\u2026',
+ search_ph:'Zoek in de Bijbel en commentaren\u2026',
  egw_ph:'EGW Estate API integratie binnenkort.',
  pioneer_ph:'Mijn notities verschijnen hier.',
  sdabc_ph:'SDA Bijbelcommentaar binnenkort.',
@@ -20458,7 +20458,7 @@ const UI={
  es:{
  read:'Leer',hist:'Historial',plans:'Planes',more:'M\u00E1s',
  prev:'Anterior',next:'Siguiente',cancel:'Cancelar',save:'Guardar',
- search_ph:'Buscar en la Biblia\u2026',
+ search_ph:'Buscar en la Biblia y en los comentarios\u2026',
  egw_ph:'Integraci\u00F3n API EGW pr\u00F3ximamente.',
  pioneer_ph:'Comentario de pioneros pr\u00F3ximamente.',
  sdabc_ph:'Comentario B\u00EDblico ASD pr\u00F3ximamente.',
@@ -22303,6 +22303,7 @@ function buildAC(el,vi,bi,ci,txt){
  pe.textContent=p;pe.dataset.spi=pi;_paraHost.appendChild(pe);
  });
  _sBtn.style.display=paras.length>1?'':'none';
+ _xrefLinkify(_paraHost,'sda',{bi:bi,ci:ci});
  linkifyRefs(_paraHost);
  }
  var _isShowingTranslation=false;
@@ -22724,6 +22725,10 @@ var _EGW_HL={y:'rgba(255,213,0,.45)',g:'rgba(34,163,154,.30)',b:'rgba(30,120,220
 var _EGW_UL={y:'#ffd900',g:'#22a39a',b:'#1e82dc',p:'#d040a0',r:'#e0303c',k:'#222'};
 function _egwMarks(key,idx){var h=settings.egwHl&&settings.egwHl[key];return (h&&h[idx])||[];}
 function egwPaint(p,text,marks){
+ egwPaint0(p,text,marks);
+ try{if(p.dataset&&p.dataset.egwk&&p.dataset.egwk.indexOf('cr:')!==0)_xrefLinkify(p,'egw',_ctxFromKey(p.dataset.egwk));}catch(e){}
+}
+function egwPaint0(p,text,marks){
  p.textContent='';
  var cuts=[0,text.length];
  marks.forEach(function(m){if(m.s>=0&&m.e<=text.length&&m.e>m.s){cuts.push(m.s,m.e);}});
@@ -24691,7 +24696,7 @@ function renderSearchResults(){
  }
  box.classList.add('on');
  var offlineWarn=!getV(0,0)?'<div class="sr-hint" style="padding:10px 16px;text-align:left;font-size:12px">Let op: van de huidige vertaling is niet alle tekst offline beschikbaar, dus resultaten kunnen onvolledig zijn. Schakel over naar HSV voor volledige dekking.</div>':'';
- if(!_srResults.length){
+ if(!_srResults.length&&!(_srCm&&_srCm.length)){
  box.innerHTML=offlineWarn+'<div class="sr-empty">Geen resultaten gevonden voor \u201c'+srEsc(q)+'\u201d.</div>';
  return;
  }
@@ -24702,6 +24707,15 @@ function renderSearchResults(){
  var ref=locBookName(r.bi)+' '+(r.ci+1)+':'+(r.vi+1);
  html+='<div class="sr-item'+(idx===_srSeenIdx?' seen':'')+'" onclick="jumpToSearchResult('+idx+')"><div class="sr-ref">'+ref+'</div><div class="sr-snip">'+highlightSnip(r.text,_srQuery)+'</div></div>';
  });
+ if(_srCm&&_srCm.length){
+ var _cre=_accentRe(_srWords(_srQuery));
+ html+='<div class="sr-count" style="margin-top:10px">'+_X('In commentaries','En comentarios','In commentaren','In Kommentaren')+' ('+_srCm.length+')</div>';
+ _srCm.forEach(function(r,idx){
+ var ref=locBookName(r.bi)+' '+(r.ci+1)+':'+(r.vi+1);
+ var badge=r.src.indexOf('EGW')===0?'EGW':(r.src.indexOf('SDABC')===0?'SDABC':_X('Note','Nota','Notitie','Notiz'));
+ html+='<div class="sr-item" onclick="jumpToSrCm('+idx+')"><div class="sr-ref">'+ref+' <span style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;background:rgba(29,158,117,.15);color:var(--teal2);margin-left:4px">'+badge+'</span></div><div class="sr-snip">'+(r.pre?'\u2026':'')+srEsc(r.txt).replace(_cre,function(m){return '<mark>'+m+'</mark>';})+(r.post?'\u2026':'')+'</div></div>';
+ });
+ }
  box.innerHTML=html;
 }
 function jumpToSearchResult(idx){
@@ -24766,7 +24780,7 @@ function hideSearch(){
  ge('searchBar').classList.remove('visible');
  ge('searchResults').classList.remove('on');
  ge('searchInp').value='';
- _srQuery='';_srResults=[];_srSeenIdx=-1;
+ _srQuery='';_srResults=[];_srCm=[];_srSeenIdx=-1;
  var pill=ge('srBackPill');if(pill)pill.classList.remove('on');
 }
 // ── AI VERSE FINDER ("I remember 2 words but not where") ──────
@@ -25955,7 +25969,7 @@ async function runAIFind(query){
 }
 function doSearch(q,isEnter){
  if(!q.trim()){
- _srQuery='';_srResults=[];_srSeenIdx=-1;
+ _srQuery='';_srResults=[];_srCm=[];_srSeenIdx=-1;
  renderSearchResults();
  return;
  }
@@ -25969,7 +25983,7 @@ function doSearch(q,isEnter){
  var bareVi=parseInt(bareM[2]||'1',10)-1;
  if(bareCi>=0&&bareCi<BOOKS[CUR.bi].c){
  var p=({bi:CUR.bi,ci:bareCi,vi:bareVi});
- _srQuery='';_srResults=[];_srSeenIdx=-1;
+ _srQuery='';_srResults=[];_srCm=[];_srSeenIdx=-1;
  hideSearch();
  CUR.bi=p.bi;CUR.ci=p.ci;
  pushHist(p.bi,p.ci,locBookName(p.bi)+' '+(p.ci+1)+':'+(p.vi+1),p.vi);
@@ -25992,7 +26006,7 @@ function doSearch(q,isEnter){
  if(refM)p=parseRef(refM[1].trim()+'.'+refM[2]+':'+(refM[3]||'1'));}
  if(true){
  if(p){
- _srQuery='';_srResults=[];_srSeenIdx=-1;
+ _srQuery='';_srResults=[];_srCm=[];_srSeenIdx=-1;
  hideSearch();
  CUR.bi=p.bi;CUR.ci=p.ci;
  pushHist(p.bi,p.ci,locBookName(p.bi)+' '+(p.ci+1)+':'+(p.vi+1),p.vi);
@@ -26023,6 +26037,7 @@ function doSearch(q,isEnter){
  _srDebounce=setTimeout(function(){
  if(!_looksLikeRef(q))maybeSwitchLangForSearch(q.trim().toLowerCase());
  _srResults=runGlobalSearch(q);
+ try{_srCm=_cmntHits(q,60);}catch(e){_srCm=[];}
  renderSearchResults();
  },220);
 }
@@ -28381,79 +28396,7 @@ function searchCmnt(q){
  resultsEl.style.display='block';
  resultsEl.innerHTML='<div style="padding:16px 16px 4px;font-size:11px;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;font-family:Gilroy,sans-serif">Searching...</div>';
 
- // Search EGW, EGW_NL, SDABC across all books
- var results=[];
- var maxResults=100;
-
- // Search EGW (EN + NL based on active trans)
- var egwSrc=((TRANS==='hsv'||TRANS==='sv')&&typeof EGW_NL!=='undefined')?EGW_NL:(typeof EGW!=='undefined'?EGW:{});
- Object.keys(egwSrc||{}).forEach(function(key){
- if(results.length>=maxResults)return;
- var txt=egwSrc[key]||'';
- if(txt.toLowerCase().includes(ql)){
- var pts=key.split('-');var bi=parseInt(pts[0]),ci=parseInt(pts[1]),vi=parseInt(pts[2]);
- if(!BOOKS[bi])return;
- results.push({src:'EGW',bi:bi,ci:ci,vi:vi,txt:txt.slice(0,200),key:key});
- }
- });
-
- // Always also search EGW EN (cross-language)
- if(typeof EGW!=='undefined'){
- Object.keys(EGW||{}).forEach(function(key){
- if(results.length>=maxResults)return;
- var txt=EGW[key]||'';
- if(txt.toLowerCase().includes(ql)){
- var already=results.some(function(r){return r.key===key&&r.src.indexOf('EGW')>=0;});
- if(already)return;
- var pts=key.split('-');var bi=parseInt(pts[0]),ci=parseInt(pts[1]),vi=parseInt(pts[2]);
- if(!BOOKS[bi])return;
- results.push({src:'EGW EN',bi:bi,ci:ci,vi:vi,txt:txt.slice(0,200),key:key});
- }
- });
- }
- // Also search EGW_NL always
- if(typeof EGW_NL!=='undefined'&&egwSrc!==EGW_NL){
- Object.keys(EGW_NL||{}).forEach(function(key){
- if(results.length>=maxResults)return;
- var txt=EGW_NL[key]||'';
- if(txt.toLowerCase().includes(ql)){
- var already=results.some(function(r){return r.key===key&&r.src.indexOf('EGW')>=0;});
- if(already)return;
- var pts=key.split('-');var bi=parseInt(pts[0]),ci=parseInt(pts[1]),vi=parseInt(pts[2]);
- if(!BOOKS[bi])return;
- results.push({src:'EGW NL',bi:bi,ci:ci,vi:vi,txt:txt.slice(0,200),key:key});
- }
- });
- }
-
- // Search SDABC
- if(typeof SDABC_DATA!=='undefined'){
- Object.keys(SDABC_DATA).forEach(function(key){
- if(results.length>=maxResults)return;
- var raw=SDABC_DATA[key]||'';
- var body=raw.indexOf('\x01')>=0?raw.split('\x01')[1]:raw;
- if(body.toLowerCase().includes(ql)){
- var pts=key.split('-');var bi=parseInt(pts[0]),ci=parseInt(pts[1]),vi=parseInt(pts[2]);
- if(!BOOKS[bi])return;
- // Bug fix: this used to reference an undefined `fullTxt`, which threw and
- // silently killed the rest of the search (personal-notes search + all
- // rendering below) any time a query matched an SDABC entry -- now uses
- // `body`, the actual commentary text parsed just above.
- results.push({src:'SDABC',bi:bi,ci:ci,vi:vi,txt:body.slice(0,200),key:key});
- }
- });
- }
-
- // Search personal notes
- Object.keys(settings.notes||{}).forEach(function(key){
- if(results.length>=maxResults)return;
- var txt=settings.notes[key]||'';
- if(txt.toLowerCase().includes(ql)){
- var pts=key.split('-');var bi=parseInt(pts[0]),ci=parseInt(pts[1]),vi=parseInt(pts[2]);
- if(!BOOKS[bi])return;
- results.push({src:'Note',bi:bi,ci:ci,vi:vi,txt:txt.slice(0,200),key:key});
- }
- });
+ var results=_cmntHits(q,100);
 
  _cmntSrResults=results;
  _cmntSrSeenKey=null;
@@ -28462,12 +28405,76 @@ function searchCmnt(q){
 
 function cmntGroupOf(src){
  if(src.indexOf('EGW')===0)return 'egw';
- if(src==='SDABC')return 'sda';
+ if(src.indexOf('SDABC')===0)return 'sda';
  if(src==='Note')return 'note';
  return 'other';
 }
 function cmntGroupLabel(g){
  return {egw:'Ellen G. White Comments',sda:'SDA Bible Commentary',note:'My Notes',other:'Other'}[g]||g;
+}
+// ── Commentary search helpers (shared by the main search bar and the Commentary screen) ──
+var _ACC={a:'aáàäâã',e:'eéèëê',i:'iíìïî',o:'oóòöôõ',u:'uúùüû',n:'nñ',c:'cç'};
+function _accentRe(words){
+ var parts=words.filter(Boolean).map(function(w){
+  return w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&').split('').map(function(ch){return _ACC[ch]?'['+_ACC[ch]+']':ch;}).join('');
+ });
+ if(!parts.length)return /$^/g;
+ return new RegExp(parts.join('|'),'gi');
+}
+function _cmSnip(text,words){
+ var n=_srNorm(text);var pos=-1,phrase=words.join(' ');
+ pos=n.indexOf(phrase);
+ if(pos<0){for(var i=0;i<words.length&&pos<0;i++)pos=n.indexOf(words[i]);}
+ if(pos<0)pos=0;
+ var st=Math.max(0,pos-70),en=Math.min(text.length,pos+150);
+ if(st>0){var sp=text.indexOf(' ',st);if(sp>=0&&sp<pos)st=sp+1;}
+ return {txt:text.slice(st,en),pre:st>0,post:en<text.length};
+}
+function _cmntHits(q,max){
+ var words=_srWords(q);var out=[];if(!words.length)return out;
+ var phrase=words.join(' ');
+ var seen={};var crHits=[];
+ function scan(src,obj,strip){
+  if(!obj)return;
+  var exact=[],loose=[];
+  Object.keys(obj).forEach(function(key){
+   var raw=obj[key]||'';var body=raw;
+   if(strip){var i=raw.indexOf('\x01');body=i>=0?raw.slice(i+1):raw;}
+   body=body.replace(/^\u2063/,'');
+   var n=_srNorm(body);var ok=n.indexOf(phrase)>=0,all=ok;
+   if(!ok&&words.length>1){all=words.every(function(w){return n.indexOf(w)>=0;});}
+   if(!ok&&!all)return;
+   var pts=key.split('-');var bi=+pts[0],ci=+pts[1],vi=+pts[2];
+   if(!BOOKS[bi])return;
+   var dk=src+'|'+key;if(seen[dk])return;seen[dk]=1;
+   var sn=_cmSnip(body,words);
+   (ok?exact:loose).push({src:src,bi:bi,ci:ci,vi:vi,txt:sn.txt,pre:sn.pre,post:sn.post,key:key});
+  });
+  exact.concat(loose).forEach(function(r){out.push(r);});
+ }
+ var egwSrc=((TRANS==='hsv'||TRANS==='sv')&&typeof EGW_NL!=='undefined'&&Object.keys(EGW_NL).length)?EGW_NL:((typeof EGW_DE!=='undefined'&&TRANS==='schlachter2000'&&Object.keys(EGW_DE).length)?EGW_DE:(typeof EGW!=='undefined'?EGW:{}));
+ scan('EGW',egwSrc,false);
+ if(typeof EGW!=='undefined'&&egwSrc!==EGW)scan('EGW EN',EGW,false);
+ ['SDABC_NL','SDABC_DE','SDABC_DATA'].forEach(function(nm){try{var o=eval('typeof '+nm+'!=="undefined"?'+nm+':null');if(o)scan('SDABC'+(nm==='SDABC_DATA'?'':' '+nm.slice(-2)),o,true);}catch(e){}});
+ try{Object.keys(settings.notes||{}).forEach(function(key){
+  var t=settings.notes[key]||'';var n=_srNorm(t);
+  if(words.every(function(w){return n.indexOf(w)>=0;})){var p=key.split('-');if(!BOOKS[+p[0]])return;var sn=_cmSnip(t,words);out.push({src:'Note',bi:+p[0],ci:+p[1],vi:+p[2],txt:sn.txt,pre:sn.pre,post:sn.post,key:key});}
+ });}catch(e){}
+ return out.slice(0,max||100);
+}
+var _srCm=[];
+function jumpToSrCm(idx){
+ var r=_srCm[idx];if(!r)return;
+ softCloseSearch();
+ CUR.bi=r.bi;CUR.ci=r.ci;
+ openSheet('cmnt');
+ var want=(r.src.indexOf('SDABC')===0)?'sda':'egw';
+ if(cmntSource!==want)setCmntSource(want);
+ setTimeout(function(){
+  var card=document.querySelector('#cmntList [data-cmnt-vi="'+r.vi+'"]');
+  if(!card){var all=document.querySelectorAll('#cmntList > div');for(var i=0;i<all.length;i++){if(all[i].dataset&&all[i].dataset.cmntVi==String(r.vi)){card=all[i];break;}}}
+  if(card){card.scrollIntoView({behavior:'smooth',block:'center'});try{var h=card.firstChild;if(h&&h.click)h.click();}catch(e){}}
+ },450);
 }
 function renderCmntSearchResults(){
  var resultsEl=ge('cmntSearchResults');
@@ -28482,7 +28489,7 @@ function renderCmntSearchResults(){
  }
 
  var ql=_cmntSrQuery.toLowerCase().trim();
- var re2=new RegExp(ql.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi');
+ var re2=_accentRe(_srWords(_cmntSrQuery));
  var order=['egw','sda','note','other'];
  var byGroup={};
  results.forEach(function(r){var g=cmntGroupOf(r.src);(byGroup[g]=byGroup[g]||[]).push(r);});
@@ -28508,8 +28515,7 @@ function renderCmntSearchResults(){
  ref.appendChild(badge);ref.appendChild(refTxt);
  var snippet=mk('div','');
  snippet.style.cssText='font-size:13px;line-height:1.6;color:var(--ink2);font-family:Roboto,sans-serif';
- var snip=r.txt.replace(re2,function(m){return'<mark class="cmnt-hl">'+m+'</mark>';});
- snippet.innerHTML=snip+'...';
+ snippet.innerHTML=(r.pre?'\u2026':'')+srEsc(r.txt).replace(re2,function(m){return'<mark class="cmnt-hl">'+m+'</mark>';})+(r.post?'\u2026':'');
  item.appendChild(ref);item.appendChild(snippet);
  resultsEl.appendChild(item);
  });
@@ -28609,7 +28615,7 @@ function renderCommentary(){
  var sepIdx=txt.indexOf('\x01');
  var t=sepIdx>0?txt.slice(0,sepIdx):'v.'+(vi+1);
  var b=sepIdx>0?txt.slice(sepIdx+1):txt;
- var card=mk('div','');card.style.cssText='border-radius:10px;border:1px solid var(--paper3);margin:4px 16px;overflow:hidden;background:var(--paper)';
+ var card=mk('div','');card.style.cssText='border-radius:10px;border:1px solid var(--paper3);margin:4px 16px;overflow:hidden;background:var(--paper)';card.dataset.cmntVi=vi;
  // Header row (always visible) - acts as toggle
  var hdr=mk('div','');hdr.style.cssText='display:flex;align-items:center;gap:8px;padding:10px 14px;cursor:pointer;background:var(--paper2);user-select:none;-webkit-user-select:none';
  var vnum=mk('span','');vnum.style.cssText='font-size:13px;font-weight:800;color:var(--teal2);flex-shrink:0;min-width:20px';vnum.textContent=vi+1;
@@ -28640,7 +28646,7 @@ function renderCommentary(){
  if(!_paras.length&&!_egwRefs)_paras=[b];
  if(!_paras.length&&_egwRefs)_paras=[];
  _paras.forEach(function(p,pi){
- var pe=mk('p','');pe.style.cssText='margin:0 0 8px;display:'+(pi===0?'block':'none');pe.textContent=p;pe.dataset.pi=pi;body.appendChild(pe);
+ var pe=mk('p','');pe.style.cssText='margin:0 0 8px;display:'+(pi===0?'block':'none');pe.textContent=p.replace(/^[^\p{L}\p{N}"'\u00bf\u00a1(\[]+/u,'');pe.dataset.pi=pi;body.appendChild(pe);
  });
  // Render EGW COMMENTS section with formatting
  if(_egwRefs){
@@ -28686,7 +28692,7 @@ function renderCommentary(){
  body.style.display=isOpen?'none':'block';
  arr.textContent=isOpen?'›':'‹';
  _sdaOpen=isOpen?null:body;
- if(_sdaOpen){_sdaOpen._arr=arr;if(!body._linked){linkifyRefs(body);body._linked=true;}}
+ if(_sdaOpen){_sdaOpen._arr=arr;if(!body._linked){_xrefLinkify(body,'sda',{bi:cmntBi,ci:cmntCi});linkifyRefs(body);body._linked=true;}}
  };
  card.appendChild(hdr);card.appendChild(body);
  list.appendChild(card);
@@ -28833,30 +28839,10 @@ function renderCommentary(){
  secs.forEach(function(sec,si){
  if(si>0){var sep=mk('div','');sep.style.cssText='height:1px;background:var(--paper3);margin:8px 0';body.appendChild(sep);}
  if(sec.title){var tEl=mk('div','');tEl.style.cssText='font-size:10px;font-weight:700;color:var(--teal2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px';tEl.textContent=sec.title;body.appendChild(tEl);}
- var bEl=mk('div','egw-body');bEl.style.cssText='font-size:var(--cfs,14px);line-height:1.85;color:var(--ink1);font-family:Roboto,system-ui,sans-serif;-webkit-user-select:text;user-select:text;font-style:normal';
  var bt=sec.body.trimEnd();
  var btFull='.!?)"\u2019'.indexOf(bt[bt.length-1])<0?bt+'\u2026':bt;
- // Render existing sel-type highlight inside commentary text if offsets match
- var hlKey3=cmntBi+'-'+cmntCi+'-'+item.vi;
- var hlVal3=settings.highlights&&settings.highlights[hlKey3];
- if(hlVal3&&hlVal3.type==='sel'&&hlVal3.start>=0&&hlVal3.end>hlVal3.start){
- var hlColors2={y:'rgba(255,213,0,.45)',g:'rgba(34,163,154,.30)',b:'rgba(30,120,220,.25)',p:'rgba(200,50,160,.25)'};
- var bg3=hlColors2[hlVal3.col]||hlColors2.y;
- // Find the highlighted text in the commentary body
- var hlIdx=btFull.indexOf(hlVal3.text);
- if(hlIdx>=0){
- if(hlIdx>0)bEl.appendChild(document.createTextNode(btFull.slice(0,hlIdx)));
- var mark3=document.createElement('mark');
- mark3.style.cssText='background:'+bg3+';border-radius:2px;padding:1px 0';
- mark3.appendChild(document.createTextNode(hlVal3.text));
- bEl.appendChild(mark3);
- if(hlIdx+hlVal3.text.length<btFull.length)bEl.appendChild(document.createTextNode(btFull.slice(hlIdx+hlVal3.text.length)));
- } else {
- bEl.textContent=btFull;
- }
- } else {
- bEl.textContent=btFull;
- }
+ var bEl=mkEgwBody(btFull,si,cmntBi+'-'+cmntCi+'-'+item.vi);
+ bEl.style.cssText='margin:0;font-size:var(--cfs,14px);line-height:1.85;color:var(--ink1);font-family:Roboto,system-ui,sans-serif;-webkit-user-select:text;user-select:text;font-style:normal';
  body.appendChild(bEl);
  });
  var src=mk('div','');src.style.cssText='font-size:11px;color:var(--ink3);margin-top:8px;border-top:1px solid var(--paper3);padding-top:6px;font-style:italic';
@@ -29449,13 +29435,89 @@ function showRefPopup(bi,ci,vi,refText,anchorEl){
  },{once:true});
  },150);
 }
+// Cross-references inside commentaries ("Ver com. de Gén. 1:5", "Ver EGW com. Isa. 60: 1"):
+// each reference becomes a link that jumps to THAT verse's commentary.
+var _XBM=null;
+function _xbm(){
+ if(_XBM)return _XBM;
+ _XBM={};Object.keys(BOOK_ABBR_MAP).forEach(function(k){_XBM[k]=BOOK_ABBR_MAP[k];});
+ var sp='gen:0,genesis:0,exo:1,exodo:1,lev:2,levitico:2,num:3,numeros:3,deut:4,deu:4,deuteronomio:4,jos:5,josue:5,jue:6,juec:6,jueces:6,rut:7,1sam:8,2sam:9,1rey:10,1reyes:10,2rey:11,2reyes:11,1cron:12,2cron:13,esd:14,esdras:14,neh:15,nehemias:15,est:16,ester:16,job:17,sal:18,salmo:18,salmos:18,prov:19,proverbios:19,ecl:20,eclesiastes:20,cant:21,cantares:21,isa:22,isaias:22,jer:23,jeremias:23,lam:24,lamentaciones:24,eze:25,ezeq:25,ezequiel:25,dan:26,daniel:26,ose:27,oseas:27,joel:28,am:29,amos:29,abd:30,abdias:30,jon:31,jonas:31,miq:32,miqueas:32,nah:33,nahum:33,hab:34,habacuc:34,sof:35,sofonias:35,hag:36,hageo:36,zac:37,zacarias:37,mal:38,malaquias:38,mat:39,mateo:39,mar:40,marc:40,marcos:40,luc:41,lucas:41,juan:42,hech:43,hechos:43,romanos:44,1cor:45,2cor:46,galatas:47,efe:48,efesios:48,fil:49,filipenses:49,colosenses:50,1tes:51,2tes:52,1tim:53,2tim:54,tito:55,filem:56,filemon:56,hebreos:57,sant:58,santiago:58,1ped:59,2ped:60,1juan:61,2juan:62,3juan:63,judas:64,apoc:65,apocalipsis:65,rev:65,gal:47,col:50,heb:57,rom:44';
+ sp.split(',').forEach(function(e){var p=e.split(':');_XBM[p[0]]=+p[1];});
+ 'gen:0,genesis:0,ex:1,exodus:1,lev:2,leviticus:2,num:3,numeri:3,deut:4,deuteronomium:4,joz:5,jozua:5,richt:6,richteren:6,ruth:7,1sam:8,2sam:9,1kon:10,2kon:11,1kron:12,2kron:13,ezra:14,neh:15,est:16,job:17,ps:18,spr:19,pred:20,hoogl:21,jes:22,jer:23,klaagl:24,ez:25,dan:26,hos:27,joel:28,am:29,obad:30,jona:31,micha:32,nah:33,hab:34,zef:35,hag:36,zach:37,mal:38,matt:39,marc:40,luc:41,joh:42,hand:43,rom:44,1kor:45,2kor:46,gal:47,ef:48,fil:49,kol:50,1thess:51,2thess:52,1tim:53,2tim:54,tit:55,filem:56,hebr:57,jak:58,1petr:59,2petr:60,1joh:61,2joh:62,3joh:63,jud:64,openb:65,1mo:0,1mose:0,2mo:1,2mose:1,3mo:2,3mose:2,4mo:3,4mose:3,5mo:4,5mose:4,ri:6,rut:7,1kon:10,2kon:11,1kn:10,2kn:11,1chr:12,2chr:13,esr:14,hi:17,hiob:17,ps:18,hld:21,hes:25,hesekiel:25,obd:30,mi:32,sach:37,mt:39,mk:40,lk:41,apg:43,roem:44,rm:44,phil:49,phim:56,offb:65,jak:58,jud:64'.split(',').forEach(function(e){var p=e.split(':');if(_XBM[p[0]]==null)_XBM[p[0]]=+p[1];});
+ return _XBM;
+}
+function _xnorm(t){try{return t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[.\s]/g,'');}catch(e){return t.toLowerCase().replace(/[.\s]/g,'');}}
+var _XCUE=/\b(?:ver|see|zie|siehe|vgl|vergelijk|vergleiche)\b\.?[^.\d(;]{0,40}?\b(?:com(?:entarios?)?|commentaar|comment|kommentar|komm|opm\w*|anm\w*)\b\.?(?:\s+(?:de|sobre|on|of|EGW|op|bij|over|van|zu|zum|von))*\s*/i;
+var _XITEM=/^((?:[123]\.?\s?)?[A-Za-zÁÉÍÓÚáéíóúñÑ]{2,14}\.?)[\s.]*:?\s*(\d+)\s*[:.]\s*(\d+)(?:\s*[-–]\s*(\d+))?((?:\s*,\s*\d+(?:\s*[-–]\s*\d+)?(?!\s*:))*)/;
+function _xrefLinkify(el,hint,ctx){
+ try{
+ if(!el)return;
+ var cb=ctx&&ctx.bi!=null?ctx.bi:(typeof cmntBi==='number'?cmntBi:0);
+ var walker=document.createTreeWalker(el,NodeFilter.SHOW_TEXT);
+ var nodes=[],n;
+ while(n=walker.nextNode()){if(_XCUE.test(n.textContent)&&!(n.parentNode&&n.parentNode.classList&&n.parentNode.classList.contains('xref')))nodes.push(n);}
+ nodes.forEach(function(tn){
+  var text=tn.textContent;var pos=0;var frag=document.createDocumentFragment();var any=false;
+  var guard=0;
+  while(guard++<20){
+   var rest=text.slice(pos);var m=_XCUE.exec(rest);if(!m)break;
+   var cueEnd=pos+m.index+m[0].length;
+   var src=/EGW/i.test(m[0])?'egw':hint;
+   // collect reference items after the cue
+   var items=[];var p2=cueEnd;
+   while(true){
+    var seg=text.slice(p2);var mm=_XITEM.exec(seg);if(!mm)break;
+    var tok=_xnorm(mm[1]);var bi=null;
+    if(tok==='cap'||tok==='caps'||tok==='vers')bi=cb;else if(_xbm()[tok]!=null)bi=_xbm()[tok];
+    if(bi==null)break;
+    var v1=+mm[3],v2=mm[4]?+mm[4]:v1;
+    items.push({s:p2,e:p2+mm[0].length,bi:bi,ci:+mm[2]-1,v1:v1-1,v2:v2-1});
+    p2+=mm[0].length;
+    var sep=/^\s*(?:;|,|\sy\s)\s*/.exec(text.slice(p2));
+    if(sep){var nx=_XITEM.exec(text.slice(p2+sep[0].length));if(nx){p2+=sep[0].length;continue;}}
+    break;
+   }
+   if(!items.length){frag.appendChild(document.createTextNode(text.slice(pos,cueEnd)));pos=cueEnd;continue;}
+   frag.appendChild(document.createTextNode(text.slice(pos,items[0].s)));
+   items.forEach(function(it,ii){
+    if(ii>0)frag.appendChild(document.createTextNode(text.slice(items[ii-1].e,it.s)));
+    var sp=document.createElement('span');sp.className='xref';
+    sp.style.cssText='color:var(--teal2);cursor:pointer;font-weight:600;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px';
+    sp.textContent=text.slice(it.s,it.e)+(ii===0?' › '+_X('commentary','comentario','commentaar','Kommentar'):' ›');
+    sp.onclick=function(e){e.stopPropagation();e.preventDefault();_cmntGoRef(it.bi,it.ci,it.v1,it.v2,src);};
+    frag.appendChild(sp);
+   });
+   pos=items[items.length-1].e;any=true;
+  }
+  if(!any)return;
+  if(pos<text.length)frag.appendChild(document.createTextNode(text.slice(pos)));
+  try{tn.parentNode.replaceChild(frag,tn);}catch(e){}
+ });
+ }catch(e){console.log('xrefLinkify error',e);}
+}
+function _ctxFromKey(k){var p=(k||'').split('-').map(Number);return isNaN(p[0])?null:{bi:p[0],ci:p[1]};}
+function _cmntGoRef(bi,ci,v1,v2,src){
+ try{var pp=ge('refPopup');if(pp)pp.remove();}catch(e){}
+ cmntBi=bi;cmntCi=ci;
+ var open=ge('sheet-cmnt')&&ge('sheet-cmnt').classList.contains('open');
+ if(!open){CUR.bi=bi;CUR.ci=ci;openSheet('cmnt');}
+ cmntBi=bi;cmntCi=ci;
+ if(src&&cmntSource!==src){setCmntSource(src);}else{renderCommentary();}
+ setTimeout(function(){
+  var cards=document.querySelectorAll('#cmntList [data-cmnt-vi]');var best=null,prev=null;
+  for(var i=0;i<cards.length;i++){var v=+cards[i].dataset.cmntVi;if(v>=v1&&v<=(v2==null?v1:v2)&&!best)best=cards[i];if(v<v1)prev=cards[i];}
+  var card=best||prev;
+  if(card){card.scrollIntoView({behavior:'smooth',block:'start'});try{if(card.firstChild&&card.firstChild.click)card.firstChild.click();}catch(e){}}
+  else{try{toast(_X('No commentary on that verse','No hay comentario en ese versículo','Geen commentaar bij dit vers','Kein Kommentar zu diesem Vers'));}catch(e){}}
+ },380);
+}
 function linkifyRefs(el){
  try{
  // Find all Bible references in text nodes and make them clickable
  var refRe=/\b(Gen|Ex|Exo|Lev|Num|Deut|Josh|Judg|Ruth|1Sam|2Sam|1Ki|2Ki|1Chr|2Chr|Ezra|Neh|Est|Job|Ps|Prov|Eccl|Song|Isa|Jer|Lam|Eze|Dan|Hos|Joel|Amos|Obad|Jon|Mic|Nah|Hab|Zeph|Hag|Zech|Mal|Matt|Mark|Luke|John|Acts|Rom|1Cor|2Cor|Gal|Eph|Phil|Col|1Thess|2Thess|1Tim|2Tim|Tit|Philem|Heb|Jas|1Pet|2Pet|1John|2John|3John|Jude|Rev)\.?\s+(\d+):(\d+)(?:-\d+)?/g;
  var walker=document.createTreeWalker(el,NodeFilter.SHOW_TEXT);
  var textNodes=[];var node;
- while(node=walker.nextNode()){if(node.textContent.match(refRe))textNodes.push(node);}
+ while(node=walker.nextNode()){if(node.parentNode&&node.parentNode.classList&&node.parentNode.classList.contains('xref'))continue;if(node.textContent.match(refRe))textNodes.push(node);}
  textNodes.forEach(function(tn){
  var frag=document.createDocumentFragment();
  var last=0;var match;refRe.lastIndex=0;
