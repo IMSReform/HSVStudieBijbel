@@ -357,7 +357,13 @@ body.pencil-drawing #studyToolRow,body.pencil-drawing #studyNoteFooter,body.penc
 }
 .study-card:active{cursor:grabbing;box-shadow:0 6px 18px rgba(0,0,0,.28);z-index:50}
 .study-card-ref{font-size:10px;font-weight:800;color:var(--teal2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;font-family:Gilroy,sans-serif}
-.study-card-txt{font-size:12px;line-height:1.5;color:#2a2f33;max-height:70px;overflow:hidden}
+.study-card-txt{font-size:12px;line-height:1.5;color:#2a2f33;overflow:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y}
+.study-card.sized .study-card-txt{max-height:none}
+.study-card.sized{overflow:hidden;display:flex;flex-direction:column}
+.study-card.sized .study-card-txt{flex:1;min-height:0}
+.study-card.sized.sticker .study-card-ta{flex:1;max-height:none;min-height:0;height:auto}
+.study-card-rs{position:absolute;right:0;bottom:0;width:22px;height:22px;cursor:nwse-resize;touch-action:none;z-index:3;background:linear-gradient(135deg,transparent 0,transparent 55%,rgba(0,0,0,.28) 55%,rgba(0,0,0,.28) 62%,transparent 62%,transparent 72%,rgba(0,0,0,.28) 72%,rgba(0,0,0,.28) 79%,transparent 79%)}
+.study-card.xref{background:#e9f3ff}
 .study-card-del{position:absolute;top:2px;right:4px;background:none;border:none;color:rgba(0,0,0,.35);font-size:15px;cursor:pointer;line-height:1;padding:2px 4px}
 .study-card-del:active{color:rgba(0,0,0,.7)}
 .study-add-btn{position:absolute;right:34px;top:50%;transform:translateY(-50%);width:24px;height:24px;border-radius:50%;background:var(--paper2);border:none;color:var(--teal2);display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:.7;z-index:2;padding:0}
@@ -368,7 +374,7 @@ body.pencil-drawing #studyToolRow,body.pencil-drawing #studyNoteFooter,body.penc
 .study-vnote-btn.has{background:#fff1a8;color:#8a6d00;opacity:1}
 .study-vnote-box{margin:2px 14px 10px 36px;padding:8px 10px;background:#fff9d6;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.12)}
 .study-vnote-box textarea{width:100%;box-sizing:border-box;min-height:64px;border:none;outline:none;resize:vertical;background:transparent;font-family:'Georgia',serif;font-size:14px;line-height:1.5;color:#2a2f33;padding:0;-webkit-user-select:text;user-select:text}
-.study-card-vn{margin-top:6px;padding-top:5px;border-top:1px dashed rgba(0,0,0,.2);font-size:11px;line-height:1.4;color:#5a4a00;font-style:italic;max-height:60px;overflow:hidden}
+.study-card-vn{margin-top:6px;padding-top:5px;border-top:1px dashed rgba(0,0,0,.2);font-size:11px;line-height:1.4;color:#5a4a00;font-style:italic;max-height:90px;overflow:auto}
 .study-add-btn::after{content:'';position:absolute;inset:-8px}
 .study-add-btn.added{background:var(--teal2,#22a39a);color:#fff;opacity:1}
 /* Toasts must show above Study Mode, which sits at z-index 19000. */
@@ -550,6 +556,7 @@ body.dark .popup{background:var(--paper);border-color:#22454e}
  background:none;font-size:13px;color:var(--ink3);cursor:pointer;font-family:inherit}
 
 /* Xref popup */
+#xpTxt .vrow{display:block;padding:0;background:none!important;-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
 #xpop{width:270px;padding:14px}
 .xp-ref{font-size:13px;font-weight:700;color:var(--teal);margin-bottom:8px;padding-right:20px}
 .xp-txt{font-family:'Georgia',serif;font-size:14px;line-height:1.7;color:var(--ink);margin-bottom:10px;min-height:32px}
@@ -1837,6 +1844,7 @@ body.chrome-hidden {
  <div class="xp-ref" id="xpRef"></div>
  <div class="xp-txt" id="xpTxt"></div>
  <button class="xp-open" onclick="openXFull()" id="xpOpen">Open in reader &rarr;</button>
+ <button class="xp-open" onclick="xpAddBoard()" id="xpBoard" style="display:none;margin-top:6px"></button>
 </div>
 
 <!-- Book picker modal -->
@@ -23602,19 +23610,50 @@ function applyMarks(){
 // retired — note editing now happens inline via openNoteTab() + the auto-saving textarea in buildAC's "My Notes" tab.
 
 // \u2500\u2500 XREF POPUP \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+function _xpSetText(p,txt){
+ var box=ge('xpTxt');box.textContent='';
+ var row=document.createElement('div');row.className='vrow xp-vrow';row.dataset.bi=p.bi;row.dataset.ci=p.ci;row.dataset.vi=p.vi;
+ var q1=document.createElement('span');q1.textContent='\u201C';
+ var vt=document.createElement('span');vt.className='vtxt';vt.style.cssText='display:inline;-webkit-user-select:text;user-select:text';vt.textContent=txt;
+ var q2=document.createElement('span');q2.textContent='\u201D';
+ row.appendChild(q1);row.appendChild(vt);row.appendChild(q2);box.appendChild(row);
+ try{var hv=settings.highlights&&settings.highlights[p.bi+'-'+p.ci+'-'+p.vi];if(hv)_hlPaintVerse(vt,hv);}catch(e){}
+}
 function showXP(ref,anchor){
  xrefTarget=ref;
  ge('xpRef').textContent=_refLoc(ref);
  ge('xpTxt').textContent=T('xref_load');
  ge('xpOpen').textContent=T('open_reader');
+ var _xb=ge('xpBoard');if(_xb){var _so=document.body.classList.contains('study-open');_xb.style.display=_so?'block':'none';_xb.textContent=_tx4('Add to study board','Toevoegen aan studiebord','A\u00f1adir al tablero de estudio','Zum Studienbrett hinzuf\u00fcgen');}
  posPopup(ge('xpop'),anchor,270);
  ge('xpop').classList.add('on');var _ov=ge('ovr');if(_ov){_ov._outlineClose=null;_ov.onclick=closeAllDrops;_ov.classList.add('on');}
  var p=parseRef(ref);
  if(p){
  var local=getV(p.bi,p.ci);
- if(local&&local[p.vi]){ge('xpTxt').textContent='\u201C'+local[p.vi]+'\u201D';}
- else{fetchV(p.bi,p.ci).then(function(vs){if(vs&&vs[p.vi])ge('xpTxt').textContent='\u201C'+vs[p.vi]+'\u201D';else ge('xpTxt').textContent=T('xref_nc');});}
+ if(local&&local[p.vi]){_xpSetText(p,local[p.vi]);}
+ else{fetchV(p.bi,p.ci).then(function(vs){if(vs&&vs[p.vi])_xpSetText(p,vs[p.vi]);else ge('xpTxt').textContent=T('xref_nc');});}
  }
+}
+function _tx4(en,nl,es,de){return LANG==='nl'?nl:LANG==='es'?es:(LANG==='de'&&de)?de:en;}
+function xpAddBoard(){
+ if(!xrefTarget)return;var p=parseRef(xrefTarget);if(!p)return;
+ function go(txt){studyAddXrefCard(p.bi,p.ci,p.vi,txt);closeXP();}
+ var local=getV(p.bi,p.ci);
+ if(local&&local[p.vi])go(local[p.vi]);
+ else fetchV(p.bi,p.ci).then(function(vs){if(vs&&vs[p.vi])go(vs[p.vi]);});
+}
+function studyAddXrefCard(bi,ci,vi,txt){
+ if(!settings.studyBoards)settings.studyBoards={};
+ var key=studyBoardKey();
+ if(!settings.studyBoards[key])settings.studyBoards[key]=[];
+ var board=settings.studyBoards[key];
+ if(board.some(function(c){return c.type==='xref'&&c.bi===bi&&c.ci===ci&&c.vi===vi;})){toast(_tx4('Already on board','Al op het bord','Ya est\u00e1 en el tablero','Schon auf dem Brett'));return;}
+ var pos=studyNextCardPos(board);
+ board.push({type:'xref',id:studyGenId(),bi:bi,ci:ci,vi:vi,txt:txt,x:pos.x,y:pos.y});
+ saveSettings();
+ toast(_tx4('Added to board \u2713','Toegevoegd aan bord \u2713','A\u00f1adido al tablero \u2713','Zum Brett hinzugef\u00fcgt \u2713'),2400);
+ if(_studyBoardOpen)renderStudyBoard();
 }
 function closeXP(){var p=ge('xpop');if(p)p.classList.remove('on');var ov=ge('ovr');if(ov){ov.onclick=closeAllDrops;ov._outlineClose=null;}maybeClearOvr();}
 function openXFull(){if(xrefTarget)navToRef(xrefTarget);closeXP();}
@@ -25597,10 +25636,11 @@ function renderStudyBoard(){
  var maxBottom=200;
  cards.forEach(function(c){
  var card=document.createElement('div');
- card.className='study-card'+(c.type==='sticker'?' sticker':'');
+ card.className='study-card'+(c.type==='sticker'?' sticker':'')+(c.type==='xref'?' xref':'')+(c.h?' sized':'');
  card.dataset.id=c.id;
  card.style.left=(c.x||16)+'px';card.style.top=(c.y||16)+'px';
- maxBottom=Math.max(maxBottom,(c.y||16)+140);
+ if(c.w)card.style.width=c.w+'px';if(c.h)card.style.height=c.h+'px';
+ maxBottom=Math.max(maxBottom,(c.y||16)+(c.h||140));
  var del=document.createElement('button');
  del.className='study-card-del';del.textContent='×';
  del.onclick=function(e){e.stopPropagation();studyRemoveCard(key,c.id);};
@@ -25626,7 +25666,7 @@ function renderStudyBoard(){
  } else {
  var ref=document.createElement('div');
  ref.className='study-card-ref';
- ref.textContent=locBookName(bi)+' '+(ci+1)+':'+(c.vi+1);
+ ref.textContent=locBookName(c.type==='xref'?c.bi:bi)+' '+((c.type==='xref'?c.ci:ci)+1)+':'+(c.vi+1);
  var txt=document.createElement('div');
  txt.className='study-card-txt';
  txt.textContent=c.txt;
@@ -25634,6 +25674,18 @@ function renderStudyBoard(){
  var _vn=settings.notes&&settings.notes[bi+'-'+ci+'-'+c.vi];
  if(_vn&&_vn.trim()){var vn=document.createElement('div');vn.className='study-card-vn';vn.textContent=_vn;card.appendChild(vn);}
  }
+ var rs=document.createElement('div');rs.className='study-card-rs';
+ (function(c,card,rs){
+ rs.addEventListener('pointerdown',function(e){
+ e.stopPropagation();e.preventDefault();rs.setPointerCapture(e.pointerId);
+ var sx=e.clientX,sy=e.clientY,w0=card.offsetWidth,h0=card.offsetHeight;
+ function mv(ev){var w=Math.max(120,w0+ev.clientX-sx),h=Math.max(70,h0+ev.clientY-sy);c.w=Math.round(w);c.h=Math.round(h);card.style.width=c.w+'px';card.style.height=c.h+'px';card.classList.add('sized');}
+ function up(){rs.removeEventListener('pointermove',mv);rs.removeEventListener('pointerup',up);rs.removeEventListener('pointercancel',up);saveSettings();var cv=ge('studyBoardCanvas');if(cv){var b=(c.y||0)+(c.h||140)+40;if(b>parseInt(cv.style.minHeight||0))cv.style.minHeight=b+'px';}}
+ rs.addEventListener('pointermove',mv);rs.addEventListener('pointerup',up);rs.addEventListener('pointercancel',up);
+ });
+ rs.addEventListener('dblclick',function(e){e.stopPropagation();delete c.w;delete c.h;card.style.width='';card.style.height='';card.classList.remove('sized');saveSettings();});
+ })(c,card,rs);
+ card.appendChild(rs);
  studyWireDrag(card,c,key);
  canvas.appendChild(card);
  });
@@ -25653,7 +25705,9 @@ function studyJumpToVerse(vi){
 function studyWireDrag(card,cardData,key){
  var startX,startY,origX,origY,dragging=false,moved=0;
  card.addEventListener('pointerdown',function(e){
- if(e.target.classList&&e.target.classList.contains('study-card-del'))return;
+ if(e.target.classList&&(e.target.classList.contains('study-card-del')||e.target.classList.contains('study-card-rs')))return;
+ var _sc=e.target.closest&&e.target.closest('.study-card-txt,.study-card-vn');
+ if(_sc&&_sc.scrollHeight>_sc.clientHeight+2)return;
  dragging=true;moved=0;
  card.setPointerCapture(e.pointerId);
  startX=e.clientX;startY=e.clientY;
@@ -25678,6 +25732,7 @@ function studyWireDrag(card,cardData,key){
  if(e&&e.target&&e.target.classList&&e.target.classList.contains('study-card-del'))return;
  if(e&&e.target&&e.target.tagName==='TEXTAREA')return;
  if(!cardData.type||cardData.type==='verse')studyJumpToVerse(cardData.vi);
+ else if(cardData.type==='xref'){try{showXP(_TSKAB[cardData.bi]+' '+(cardData.ci+1)+':'+(cardData.vi+1),card);}catch(er){}}
  return;
  }
  saveSettings();
@@ -27732,6 +27787,15 @@ function initTextSelection(){
  return;
  }
  }catch(egwErr){console.warn('egw sel',egwErr);}
+ // Selection inside the cross-reference popup -> highlight/underline that verse
+ try{
+ var _xe=el.closest?el.closest('#xpTxt'):null;
+ if(_xe&&typeof xrefTarget!=='undefined'&&xrefTarget){
+ var _xp=parseRef(xrefTarget);
+ if(_xp){_egwSel=null;showVAM(_xp.bi,_xp.ci,_xp.vi,selectedText,anchor,null);
+ setTimeout(function(){try{if(anchor.parentNode)anchor.parentNode.removeChild(anchor);}catch(e){}},200);return;}
+ }
+ }catch(xe){}
  // Check if selection is in a verse row OR inline accordion
  var row=el;
  try{
