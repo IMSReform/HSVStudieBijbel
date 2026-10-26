@@ -134,6 +134,8 @@ body{font-family:'Roboto',system-ui,sans-serif;background:var(--paper2);color:va
 
 /* landscape phones: fill the full width (notch / rounded-corner safe areas) */
 html{background:var(--c1,#0d4f6c)}
+body .hdr{height:calc(52px + env(safe-area-inset-top,0px))!important}
+@media (display-mode:standalone){body{position:fixed!important;top:0!important;left:0!important;right:0!important;bottom:0!important;height:auto!important}}
 body{background-image:linear-gradient(to bottom,var(--c1,#0d4f6c) 0,var(--c1,#0d4f6c) calc(env(safe-area-inset-top,0px) + 88px),transparent calc(env(safe-area-inset-top,0px) + 88px))}
 body.dark::before{background:#08222c}
 body.dark{background-image:linear-gradient(to bottom,#08222c 0,#08222c calc(env(safe-area-inset-top,0px) + 88px),transparent calc(env(safe-area-inset-top,0px) + 88px))}
