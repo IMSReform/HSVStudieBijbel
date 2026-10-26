@@ -133,7 +133,8 @@ body{font-family:'Roboto',system-ui,sans-serif;background:var(--paper2);color:va
  display:flex;flex-direction:column;height:100dvh}
 
 /* landscape phones: fill the full width (notch / rounded-corner safe areas) */
-html{background:var(--paper2)}
+html{background:var(--c1,#0d4f6c)}
+body::before{content:'';position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top,0px);background:var(--c1,#0d4f6c);z-index:99998;pointer-events:none}
 body{padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
 .hdr,#tbar{margin-left:calc(-1*env(safe-area-inset-left,0px));margin-right:calc(-1*env(safe-area-inset-right,0px));padding-left:max(10px,env(safe-area-inset-left,0px))!important;padding-right:max(10px,env(safe-area-inset-right,0px))!important}
 #presentMode>div:first-child{padding-left:max(18px,env(safe-area-inset-left,0px))!important;padding-right:max(18px,env(safe-area-inset-right,0px))!important}
