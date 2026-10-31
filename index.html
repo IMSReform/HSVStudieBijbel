@@ -576,6 +576,9 @@ body.dark .popup{background:var(--paper);border-color:#22454e}
 
 /* Xref popup */
 #xpTxt .vtxt,#xpTxt .vtxt *{font-size:inherit!important;line-height:inherit!important;font-family:inherit!important;color:inherit;display:inline;padding:0;margin:0}
+@media (pointer:coarse){#cmntList [data-cmnt-vi]{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:none}
+#cmntList [data-cmnt-vi] *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}}
+#sheet-cmnt.open ~ .range-overlay-box{z-index:250}
 #xpTxt .vrow{font:inherit;display:block;padding:0;background:none!important;-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
 #xpop{width:270px;padding:14px}
 .xp-ref{font-size:13px;font-weight:700;color:var(--teal);margin-bottom:8px;padding-right:20px}
@@ -24237,6 +24240,78 @@ function _flingScrollVel(vel){
  }
  requestAnimationFrame(step);
 }
+function initCmntTouchSelect(){
+ var L=ge('cmntList');if(!L||L._cts)return;L._cts=true;
+ var tp=null;
+ function reset(){if(tp&&tp.timer)clearTimeout(tp.timer);if(tp){try{L.releasePointerCapture(tp.pid);}catch(e){}}tp=null;}
+ function fling(vel){
+ if(Math.abs(vel)<0.04)return;
+ (function step(){vel*=0.92;if(Math.abs(vel)<0.015)return;L.scrollTop-=vel*16;requestAnimationFrame(step);})();
+ }
+ function rng(tp,x,y){
+ var r1=_hlPointToRange(x,y);if(!r1)return null;
+ var full=document.createRange();
+ if(tp.r0.compareBoundaryPoints(Range.START_TO_START,r1)<=0){full.setStart(tp.r0.startContainer,tp.r0.startOffset);full.setEnd(r1.startContainer,r1.startOffset);}
+ else{full.setStart(r1.startContainer,r1.startOffset);full.setEnd(tp.r0.startContainer,tp.r0.startOffset);}
+ return full;
+ }
+ function engage(tp,x,y){
+ var r0=_hlPointToRange(x,y);if(!r0||!tp.card.contains(r0.startContainer))return false;
+ tp.r0=r0.cloneRange();tp.engaged=true;
+ try{if(navigator.vibrate)navigator.vibrate(8);}catch(e){}
+ return true;
+ }
+ function paint(full){
+ _showRangeOverlay(full);
+ for(var i=0;i<_rangeOverlayEls.length;i++)_rangeOverlayEls[i].style.zIndex=260;
+ }
+ L.addEventListener('pointerdown',function(e){
+ if(e.pointerType==='mouse'||tp)return;
+ var card=e.target.closest&&e.target.closest('[data-cmnt-vi]');
+ if(!card||e.target.closest('button,a,input,textarea,select'))return;
+ tp={pid:e.pointerId,card:card,sx:e.clientX,sy:e.clientY,lastY:e.clientY,lastT:Date.now(),vy:0,engaged:false,scrolling:false,full:null};
+ try{L.setPointerCapture(e.pointerId);}catch(err){}
+ tp.timer=setTimeout(function(){if(tp&&!tp.scrolling&&!tp.engaged)engage(tp,tp.sx,tp.sy);},420);
+ },{passive:true});
+ L.addEventListener('pointermove',function(e){
+ if(!tp||e.pointerId!==tp.pid)return;
+ var dx=e.clientX-tp.sx,dy=e.clientY-tp.sy;
+ if(!tp.engaged&&!tp.scrolling){
+ if(Math.abs(dx)>10&&Math.abs(dx)>Math.abs(dy)*1.15){clearTimeout(tp.timer);if(!engage(tp,tp.sx,tp.sy)){reset();return;}}
+ else if(Math.abs(dy)>8&&Math.abs(dy)>Math.abs(dx)*1.2){clearTimeout(tp.timer);tp.scrolling=true;tp.lastY=tp.sy;}
+ else return;
+ }
+ e.preventDefault();
+ if(tp.scrolling){
+ var now=Date.now(),d=e.clientY-tp.lastY,dt=now-tp.lastT;
+ L.scrollTop-=d;if(dt>0)tp.vy=d/dt;tp.lastY=e.clientY;tp.lastT=now;
+ return;
+ }
+ var cr=tp.card.getBoundingClientRect();
+ var full=rng(tp,Math.min(Math.max(e.clientX,cr.left+1),cr.right-1),Math.min(Math.max(e.clientY,cr.top+1),cr.bottom-1));
+ if(full){tp.full=full;paint(full);}
+ },{passive:false});
+ function end(e){
+ if(!tp||e.pointerId!==tp.pid)return;
+ var t=tp;reset();
+ if(t.scrolling){fling(t.vy);return;}
+ if(!t.engaged)return;
+ var full=t.full,txt=full?full.toString().replace(/\s+/g,' ').trim():'';
+ _markDragSelHandled();
+ if(!txt){_clearRangeOverlay();return;}
+ var lr=_rangeLineRects(full),sr=full.getBoundingClientRect();
+ if(lr.length)sr={left:lr[0].left,bottom:lr[lr.length-1].bottom};
+ _selRange=full.cloneRange();_selText=txt;
+ var anchor=document.createElement('div');
+ anchor.style.cssText='position:fixed;left:'+Math.max(8,sr.left)+'px;top:'+Math.max(8,(sr.bottom||0)+4)+'px;width:1px;height:1px;z-index:1';
+ document.body.appendChild(anchor);
+ showVAM(cmntBi,cmntCi,parseInt(t.card.dataset.cmntVi,10),txt,anchor,null);
+ paint(full);
+ setTimeout(function(){try{if(anchor.parentNode)anchor.parentNode.removeChild(anchor);}catch(er){}},200);
+ }
+ L.addEventListener('pointerup',end);
+ L.addEventListener('pointercancel',function(){reset();_clearRangeOverlay();});
+}
 function initHlDragSelect(rootId){
  var vDiv=ge(rootId||'verses');if(!vDiv)return;
  var _hp=null; // {vi,vtxt,rect,startRange,lastRange}
@@ -24263,7 +24338,7 @@ function initHlDragSelect(rootId){
  if(isNaN(vi))return;
  var r0=_hlPointToRange(e.clientX,e.clientY);
  if(!r0)return;
- _hp={vi:vi,vtxt:vtxt,rect:vtxt.getBoundingClientRect(),startRange:r0.cloneRange(),lastRange:null};
+ _hp={vi:vi,vtxt:vtxt,rect:vtxt.getBoundingClientRect(),startRange:r0.cloneRange(),lastRange:null,sx:e.clientX,sy:e.clientY,pt:e.pointerType,pid:e.pointerId};
  try{vDiv.setPointerCapture(e.pointerId);}catch(err){}
  },{passive:true});
  vDiv.addEventListener('pointermove',function(e){
@@ -24277,6 +24352,19 @@ function initHlDragSelect(rootId){
  }
  if(!_hp)return;
  e.preventDefault();
+ if(_hp.pt==='touch'&&!_hp.lastRange){
+ // A mostly-vertical swipe with a finger is a scroll, not a highlight.
+ var _ddx=e.clientX-_hp.sx,_ddy=e.clientY-_hp.sy;
+ if(Math.abs(_ddy)>8&&Math.abs(_ddy)>Math.abs(_ddx)*1.2){
+ _clearRangeOverlay();
+ _hs={pid:_hp.pid,lastY:_hp.sy,lastT:Date.now(),vy:0};
+ _hp=null;
+ var _sc0=_scrollEl();var _dy0=e.clientY-_hs.lastY;
+ if(_sc0)_sc0.scrollTop-=_dy0;
+ _hs.lastY=e.clientY;
+ return;
+ }
+ }
  // Clamp to this verse's own text box so a finger/Pencil straying above,
  // below or past the edge of the line can't spill the selection into a
  // neighboring verse (highlights are stored per-verse).
@@ -24326,7 +24414,7 @@ function initHlDragSelect(rootId){
 function _studyOpen(){var sm=ge('studyMode');return !!(sm&&sm.style.display==='flex');}
 // The element that actually scrolls the verses: the study read pane while
 // Study Mode is open, otherwise the normal chapter scroller.
-function _scrollEl(){return _studyOpen()?ge('studyReadPane'):ge('chapterScroll');}
+function _scrollEl(){var _cs=ge('sheet-cmnt');if(_cs&&_cs.classList.contains('open')&&ge('cmntList'))return ge('cmntList');return _studyOpen()?ge('studyReadPane'):ge('chapterScroll');}
 var _srInkOn=false,_srInkColor='#e0303c',_srInkStrokes=[],_srInkActive=null,_srInkCv=null,_srInkBound=false,_srInkSaveT=null;
 function _srInkKey(){return CUR.bi+'-'+CUR.ci;}
 function _srInkLoad(){
@@ -25376,8 +25464,24 @@ function openStudyMode(){
  srInkUI();
  updateHlUI();
 }
+function studyFlushAll(){
+ try{
+ var tas=document.querySelectorAll('#studyBoardCanvas .study-card-ta');
+ var key=studyBoardKey();var cards=(settings.studyBoards&&settings.studyBoards[key])||[];
+ for(var i=0;i<tas.length;i++){
+ var cd=tas[i].closest('.study-card');var id=cd&&cd.dataset.id;
+ for(var j=0;j<cards.length;j++){if(cards[j].id===id)cards[j].txt=tas[i].value;}
+ }
+ studySaveNote(true);
+ saveSettings();
+ }catch(e){}
+}
+document.addEventListener('visibilitychange',function(){if(document.visibilityState==='hidden')studyFlushAll();});
+window.addEventListener('pagehide',studyFlushAll);
+window.addEventListener('blur',studyFlushAll);
 function closeStudyMode(){
  var sm=ge('studyMode');if(!sm)return;
+ studyFlushAll();
  studySaveNote(true);
  if(_studyPopupId)closeSheet(_studyPopupId);
  sm.style.display='none';
@@ -25704,8 +25808,10 @@ function renderStudyBoard(){
  ta.oninput=function(){
  c.txt=ta.value;
  clearTimeout(c._saveT);
- c._saveT=setTimeout(function(){saveSettings();},700);
+ c._saveT=setTimeout(function(){saveSettings();},250);
  };
+ ta.addEventListener('blur',function(){c.txt=ta.value;saveSettings();});
+ ta.addEventListener('change',function(){c.txt=ta.value;saveSettings();});
  // Let taps/drags inside the textarea edit/select text rather than move the card.
  ta.addEventListener('pointerdown',function(e){e.stopPropagation();});
  card.appendChild(ta);
@@ -25795,8 +25901,15 @@ function studyWireDrag(card,cardData,key){
  card.addEventListener('pointercancel',endDrag);
 }
 function studyNoteKey(){return CUR.bi+'-'+CUR.ci;}
+var _studyNoteBound=false;
 function studyLoadNote(){
  var ta=ge('studyNoteTa');if(!ta)return;
+ if(!_studyNoteBound){
+ _studyNoteBound=true;
+ var _nt=null;
+ ta.addEventListener('input',function(){clearTimeout(_nt);_nt=setTimeout(function(){studySaveNote(true);},300);});
+ ta.addEventListener('blur',function(){studySaveNote(true);});
+ }
  ta.value=(settings.studyNotes&&settings.studyNotes[studyNoteKey()])||'';
  studyLoadInk();
 }
@@ -27706,6 +27819,7 @@ function init(){
  initTextDragSelect();
  initHlDragSelect('studyReadPane'); // same highlighter + hold/drag selection inside Study Mode's read pane
  initTextDragSelect('studyReadPane');
+ initCmntTouchSelect();
  ['chapterScroll','studyReadPane'].forEach(function(id){
  var sc=ge(id);if(!sc)return;
  var q=false;
