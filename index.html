@@ -25780,6 +25780,8 @@ function studyBindPalmGuard(){
  }
  ['pointerdown','pointermove','pointerover','pointerup','pointerenter'].forEach(function(t){sm.addEventListener(t,seenPen,true);});
  function isTextField(el){return el&&el.closest&&el.closest('textarea,input');}
+ // Palm rejection is for iPad + Apple Pencil only. On a phone a thumb tap is a big contact patch too, so never block there.
+ var _isPhone=Math.min(screen.width,screen.height)<700;
  function stop(e){e.preventDefault();e.stopPropagation();if(e.stopImmediatePropagation)e.stopImmediatePropagation();}
  // Touch sizes: a resting palm is a big contact patch, a fingertip is not.
  sm.addEventListener('touchstart',function(e){
@@ -25790,12 +25792,12 @@ function studyBindPalmGuard(){
    allStylus=false;
    if((t.radiusX||0)>=22||(t.radiusY||0)>=22)palm=true;
   }
-  if(allStylus)return;
+  if(allStylus||_isPhone)return;
   var inRead=e.target&&e.target.closest&&e.target.closest('#studyReadPane');
  if(palm||(_studyPenNear()&&!inRead)){_studyBlockT=Date.now();stop(e);}
  },{capture:true,passive:false});
  sm.addEventListener('pointerdown',function(e){
-  if(e.pointerType!=='touch')return;
+  if(e.pointerType!=='touch'||_isPhone)return;
   var inRead2=e.target&&e.target.closest&&e.target.closest('#studyReadPane');
   if((_studyPenNear()&&!inRead2)||(e.width>=44&&e.height>=44)){_studyPalmBlocked[e.pointerId]=true;_studyBlockT=Date.now();stop(e);}
  },{capture:true,passive:false});
@@ -25808,7 +25810,7 @@ function studyBindPalmGuard(){
  });
  ['click','mousedown','mouseup','dblclick','contextmenu'].forEach(function(t){
   sm.addEventListener(t,function(e){
-   if(_studyBlockT>_studyPenT&&Date.now()-_studyBlockT<1500&&e.isTrusted)stop(e);
+   if(!_isPhone&&_studyBlockT>_studyPenT&&Date.now()-_studyBlockT<1500&&e.isTrusted)stop(e);
   },true);
  });
  // The yellow paper, toolbar and top bar are never native-selectable text.
