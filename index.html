@@ -21250,7 +21250,7 @@ async function aiCallProvider(provider, prompt, systemPrompt, maxTokens){
  body:JSON.stringify({
  system_instruction:{parts:[{text:systemPrompt}]},
  contents:[{parts:[{text:prompt}]}],
- generationConfig:{maxOutputTokens:maxTokens}
+ generationConfig:{maxOutputTokens:maxTokens+1024,thinkingConfig:{thinkingBudget:0}}
  })
  });
  var d=await r.json();
@@ -21258,7 +21258,7 @@ async function aiCallProvider(provider, prompt, systemPrompt, maxTokens){
  var isQ=d.error.status==='RESOURCE_EXHAUSTED'||(d.error.message||'').toLowerCase().includes('quota')||(d.error.message||'').toLowerCase().includes('rate');
  throw Object.assign(new Error(d.error.message||'Gemini error'),{isQuota:isQ});
  }
- return d.candidates[0].content.parts[0].text;
+ return ((d.candidates&&d.candidates[0]&&d.candidates[0].content&&d.candidates[0].content.parts)||[]).map(function(p){return p.text||'';}).join('');
  }
  throw new Error('Unknown provider: '+provider);
 }
@@ -26576,7 +26576,11 @@ async function runAIFind(query){
  var raw=await aiCall(query,sysPrompt[LANG]||sysPrompt.en,600);
  raw=raw||'';
  var matches=[];
- try{matches=JSON.parse(raw.replace(/```json|```/g,'').trim());}catch(e){}
+ var _cl=raw.replace(/```json|```/g,'').trim();
+ try{var _i0=_cl.indexOf('['),_i1=_cl.lastIndexOf(']');matches=JSON.parse(_i0>=0&&_i1>_i0?_cl.slice(_i0,_i1+1):_cl);}catch(e){
+  matches=[];(_cl.match(/\{[^{}]*"ref"[^{}]*\}/g)||[]).forEach(function(o){try{matches.push(JSON.parse(o));}catch(e2){}});
+ }
+ if(!Array.isArray(matches))matches=[];
  ldr.remove();
  if(!matches.length){
  var none=mk('div','');none.style.cssText='font-size:13px;color:var(--ink3);padding:8px 0';
