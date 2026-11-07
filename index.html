@@ -521,7 +521,7 @@ body.dark .popup{background:var(--paper);border-color:#22454e}
 
 /* Verse action popup */
 #vamp{
- position:fixed;z-index:19600;
+ position:fixed;z-index:19650;
  background:#fff;border-radius:30px;
  box-shadow:0 4px 24px rgba(0,0,0,.18),0 1px 4px rgba(0,0,0,.10);
  padding:6px 8px;
@@ -23287,9 +23287,11 @@ function showVAM(bi,ci,vi,txt,anchor,e){
  var left=rect.left;
  if(left+pw>window.innerWidth-8)left=window.innerWidth-pw-8;
  if(left<8)left=8;
- var top=rect.bottom+8;
- // If too close to bottom, put above
- if(top+50>window.innerHeight-70)top=rect.top-50;
+ var _ios=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+ var _cm=_ios?58:0; // iOS shows its own Copy/Look Up callout (~50px) above the selection, or below it when there is no room above
+ var top=rect.bottom+8+(_ios&&rect.top<120?_cm:0);
+ // If too close to bottom, put above (further up on iOS so the native callout sits between selection and our bar)
+ if(top+50>window.innerHeight-70)top=rect.top-50-_cm;
  if(top<60)top=60;
  pop.style.left=left+'px';pop.style.top=top+'px';
  pop.classList.add('on');
