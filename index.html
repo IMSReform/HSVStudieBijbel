@@ -975,6 +975,10 @@ body.dark #splitPane{border-top-color:var(--teal2)}
 .hl-toggle.on{opacity:1;background:rgba(255,255,255,.18)}
 .hl-color-row{display:none;position:fixed;top:54px;right:8px;z-index:191;background:#fff;border-radius:18px;box-shadow:0 4px 16px rgba(0,0,0,.18);padding:6px 8px;gap:7px;align-items:center}
 .hl-color-row.on{display:flex}
+#tbarScroll::-webkit-scrollbar{display:none}
+#tbarScroll>*{flex-shrink:0}
+.hl-color-row{max-width:calc(100vw - 16px)}
+@media (max-width:430px){.hl-color-row{gap:4px;padding:6px 6px}.hl-color-row>div{gap:4px!important}.hl-color-row .hl-swatch{width:20px;height:20px}.hl-color-row .hl-color-sep{margin:0 1px}}
 .hl-swatch{width:22px;height:22px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0;flex-shrink:0}
 .hl-swatch.on{border-color:var(--ink,#222)}
 .hl-swatch.ul-swatch{background:#fff;box-shadow:inset 0 0 0 1.5px #ddd,inset 0 -4px 0 0 currentColor}
@@ -1222,6 +1226,7 @@ function _bootSplashDone(){var w=Math.max(0,1100-(Date.now()-window._bootT0));se
  <button class="chnav-btn" id="prevBtn" onclick="prevCh()" style="color:#f0c040;padding:6px 8px;flex-shrink:0">
  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
  </button>
+ <div id="tbarScroll" style="flex:1;min-width:0;display:flex;align-items:center;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;height:100%">
  <button id="outlineBtn" onclick="toggleOutlinePopup()" style="display:none;background:none;border:none;cursor:pointer;padding:6px 8px;color:rgba(255,255,255,.7);flex-shrink:0;line-height:1;margin-left:2px" title="Book outline">
  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/></svg>
  </button>
@@ -1229,7 +1234,7 @@ function _bootSplashDone(){var w=Math.max(0,1100-(Date.now()-window._bootT0));se
  <!-- CENTER: book title (flexes between the two icon groups, truncates
  with an ellipsis instead of ever overlapping an icon, regardless of
  title length or how much space either icon group takes up) -->
- <button id="chapRef" onclick="openPicker()" style="flex:1;min-width:0;background:none;border:none;cursor:pointer;font-size:14px;font-weight:700;color:#fff;font-family:Gilroy,sans-serif;padding:0 4px;letter-spacing:.2px;pointer-events:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center">Genesis 1</button>
+ <button id="chapRef" onclick="openPicker()" style="flex:1 0 96px;max-width:70vw;min-width:96px;background:none;border:none;cursor:pointer;font-size:14px;font-weight:700;color:#fff;font-family:Gilroy,sans-serif;padding:0 4px;letter-spacing:.2px;pointer-events:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center">Genesis 1</button>
  <!-- RIGHT: highlighter + search + present + next -->
  <button class="hl-toggle" id="hlModeBtn" onclick="toggleHlMode()" title="Highlighter">
  <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9.2" stroke="currentColor" stroke-width="1.4"/><path d="M10.3 13.9 L10.3 9.3 L13.7 8.5 L13.7 13.9 Z" fill="#ffd500" stroke="#ffd500" stroke-width="1.3" stroke-linejoin="round"/><rect x="8.5" y="14.5" width="7" height="6.5" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
@@ -1241,6 +1246,7 @@ function _bootSplashDone(){var w=Math.max(0,1100-(Date.now()-window._bootT0));se
   <button onclick="openPresentMode()" title="Present" style="background:none;border:none;cursor:pointer;padding:6px 9px;opacity:.8;display:flex;align-items:center;color:#fff;flex-shrink:0;margin-left:4px">
  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
  </button>
+ </div>
  <button class="chnav-btn" id="nextBtn" onclick="nextCh()" style="color:#f0c040;padding:6px 8px;flex-shrink:0;margin-left:4px">
  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
  </button>
@@ -1595,7 +1601,7 @@ function _bootSplashDone(){var w=Math.max(0,1100-(Date.now()-window._bootT0));se
  <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;flex-shrink:0;flex-wrap:wrap;gap:8px">
  <div id="presentRef" style="color:rgba(255,255,255,.55);font-size:13px;font-weight:700;letter-spacing:.5px;text-transform:uppercase"></div>
  <div style="display:flex;align-items:center;gap:10px">
- <div id="presentGroupWrap" style="display:flex;align-items:center;gap:4px;background:rgba(255,255,255,.08);border-radius:18px;padding:3px">
+ <div id="presentGroupWrap" style="display:none;align-items:center;gap:4px;background:rgba(255,255,255,.08);border-radius:18px;padding:3px">
  <button data-grp="1" onclick="presentSetGroupSize(1)" class="pg-btn" style="background:var(--teal2,#22a39a);border:none;color:#fff;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:13px;font-weight:700">1</button>
  <button data-grp="2" onclick="presentSetGroupSize(2)" class="pg-btn" style="background:none;border:none;color:#fff;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:13px;font-weight:700">2</button>
  <button data-grp="3" onclick="presentSetGroupSize(3)" class="pg-btn" style="background:none;border:none;color:#fff;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:13px;font-weight:700">3</button>
@@ -19169,7 +19175,7 @@ BOOK_INTRO[21]=[{"num": 1, "title": "Title", "body": "The book is commonly known
 
 </script>
 
-<div id="sheet-cmnt" class="sheet" style="background:#fff;border-radius:20px 20px 0 0;max-height:92vh;display:flex;flex-direction:column">
+<div id="sheet-cmnt" class="sheet" style="background:#fff;border-radius:20px 20px 0 0;max-height:calc(100vh - 70px);max-height:calc(100dvh - env(safe-area-inset-top,0px) - 24px);display:flex;flex-direction:column">
  <div style="padding:10px 16px 0;border-bottom:1px solid var(--paper3);flex-shrink:0">
  <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
  <button onclick="closeSheet('cmnt')" style="background:none;border:none;font-size:13px;font-weight:700;color:var(--teal2);cursor:pointer;font-family:inherit">&#8592; Close</button>
@@ -22166,6 +22172,8 @@ function toggleOutlinePopup(){
  _bookHdr.textContent=(_isNL?'Inleiding tot ':'Introduction to ')+locBookName(CUR.bi);
  content.appendChild(_bookHdr);
  _introData[CUR.bi].forEach(function(sec){
+ // The plain-text outline section is redundant when the structured, tap-to-jump outline below exists
+ if(_outline&&/^(bosquejo|outline|overzicht|gliederung)$/i.test((sec.title||'').trim()))return;
  var secEl=mk('div','');secEl.style.cssText='border-bottom:1px solid var(--paper2)';
  var shdr=mk('div','');shdr.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:10px 16px;cursor:pointer;background:#fff;-webkit-user-select:none;user-select:none';
  var st=mk('span','');st.style.cssText='font-size:13px;font-weight:600;color:var(--ink);font-family:Roboto,sans-serif';st.textContent=sec.title;
@@ -22274,7 +22282,7 @@ function renderChapter(){
  var bk=BOOKS[bi];
  var ref=locBookName(bk)+' '+(ci+1);
  pushHist(bi,ci,ref);
- ge('chapRef').textContent=ref;
+ ge('chapRef').textContent=ref;setTimeout(tbarCenterTitle,30);
  // Keep split pane in sync with main pane
  setTimeout(function(){if(typeof syncSplit==='function')syncSplit();},50);
  ge('chTitle').textContent=ref;
@@ -22647,8 +22655,8 @@ function buildAC(el,vi,bi,ci,txt){
  _egwFetchBtn.textContent=_X('Search EGW Writings','Buscar en los escritos de EGW','Zoek in de geschriften van EGW','In EGW-Schriften suchen');
  _egwFetchBtn.onclick=function(){
  var _bkName=locBookName(bi);var _ch=ci+1;var _vs=vi+1;
- var _query=_bkName+'+'+_ch+':'+_vs;
- var _url='https://text.egwwritings.org/search/'+encodeURIComponent(_query)+'?lang='+(LANG==='nl'?'nl':'en');
+ var _query='"'+_bkName+' '+_ch+':'+_vs+'"';
+ var _url='https://egwwritings.org/search?q='+encodeURIComponent(_query)+'&lang='+(LANG||'en');
  window.open(_url,'_blank');
  };
  panes[1].appendChild(_egwFetchBtn);
@@ -23282,7 +23290,8 @@ function showVAM(bi,ci,vi,txt,anchor,e){
  // Hide more panel
  var more=ge('vamp-more');if(more)more.classList.remove('on');
  var pop=ge('vamp');
- var pw=260; // estimated pill width
+ pop.style.visibility='hidden';pop.classList.add('on');
+ var pw=pop.offsetWidth||260; // real pill width
  var rect=anchor.getBoundingClientRect();
  var left=rect.left;
  if(left+pw>window.innerWidth-8)left=window.innerWidth-pw-8;
@@ -23294,6 +23303,7 @@ function showVAM(bi,ci,vi,txt,anchor,e){
  if(top+50>window.innerHeight-70)top=rect.top-50-_cm;
  if(top<60)top=60;
  pop.style.left=left+'px';pop.style.top=top+'px';
+ pop.style.visibility='';
  pop.classList.add('on');
  _vampOpenTime=Date.now();
  // ovr not used for vamp — tap-outside handler closes it
@@ -23319,6 +23329,10 @@ function toggleVampMore(e){
  more.style.overflowY='auto';more.style.webkitOverflowScrolling='touch';
  if(above>=below){more.style.top='auto';more.style.bottom='calc(100% + 8px)';more.style.maxHeight=Math.max(120,above-8)+'px';}
  else{more.style.bottom='auto';more.style.top='calc(100% + 8px)';more.style.maxHeight=Math.max(120,below-8)+'px';}
+ // keep the "more" panel inside the screen horizontally too
+ var _mr=more.getBoundingClientRect(),_cr=parseFloat(getComputedStyle(more).right)||0;
+ if(_mr.left<8)more.style.right=(_cr-(8-_mr.left))+'px';
+ else if(_mr.right>window.innerWidth-8)more.style.right=(_cr+(_mr.right-(window.innerWidth-8)))+'px';
  var full=more.scrollHeight;
  if(full<=above-8){more.style.top='auto';more.style.bottom='calc(100% + 8px)';more.style.maxHeight='';}
  else if(full<=below-8){more.style.bottom='auto';more.style.top='calc(100% + 8px)';more.style.maxHeight='';}
@@ -24142,6 +24156,17 @@ function setHlType(t){
  updateHlUI();
 }
 var _hlRowResizeBound=false;
+function _safeTopPx(){
+ try{var p=document.createElement('div');p.style.cssText='position:fixed;top:0;left:0;padding-top:env(safe-area-inset-top,0px);visibility:hidden';document.body.appendChild(p);var h=p.offsetHeight;p.remove();return h||0;}catch(e){return 0;}
+}
+
+function tbarCenterTitle(){
+ try{var sc=document.getElementById('tbarScroll'),t=document.getElementById('chapRef');if(!sc||!t)return;
+  if(sc.scrollWidth<=sc.clientWidth+1){sc.scrollLeft=0;return;}
+  sc.scrollLeft=Math.max(0,t.offsetLeft-(sc.clientWidth-t.offsetWidth)/2);}catch(e){}
+}
+window.addEventListener('resize',function(){setTimeout(tbarCenterTitle,60);});
+window.addEventListener('load',function(){setTimeout(tbarCenterTitle,300);});
 function positionHlColorRow(){
  var btn=_studyOpen()?ge('studyHlBtn'):ge('hlModeBtn'),row=ge('hlColorRow');
  if(!btn||!row)return;
@@ -24150,13 +24175,20 @@ function positionHlColorRow(){
  window.addEventListener('resize',function(){if(row.classList.contains('on'))positionHlColorRow();});
  }
  var rect=btn.getBoundingClientRect();
- var pw=Math.min(320,window.innerWidth-16);
+ row.style.maxWidth=(window.innerWidth-16)+'px';
+ row.style.overflowX='auto';
+ var pw=Math.min(row.offsetWidth||320,window.innerWidth-16);
  var left=rect.right-pw;
+ if(!(rect.width>0)||rect.right<=0||rect.right>window.innerWidth)left=window.innerWidth-pw-8;
  if(left<8)left=8;
  if(left+pw>window.innerWidth-8)left=window.innerWidth-pw-8;
  row.style.left=left+'px';
  row.style.right='auto';
- row.style.top=(rect.bottom+8)+'px';
+ // If the header (with the highlighter button) has scrolled away, stay just below the notch / status bar
+ var st=_safeTopPx();
+ var top=(rect.width>0&&rect.bottom>st)?rect.bottom+8:st+10;
+ if(top<st+10)top=st+10;
+ row.style.top=top+'px';
 }
 function updateHlUI(){
  var btn=ge('hlModeBtn');
@@ -26337,9 +26369,30 @@ function studyOpenSheet(id){
 function studyCloseActivePopup(){
  if(_studyPopupId)closeSheet(_studyPopupId);
 }
+function presentFitText(){
+ // Each slide shrinks its text (never below 14px) until the verse fits the screen; _presentFontSize is the preferred maximum.
+ var scroll=ge('presentScroll');if(!scroll)return;
+ var avail=scroll.clientHeight-72, availW=scroll.clientWidth*0.84;
+ Array.prototype.forEach.call(scroll.children,function(slide){
+  var txt=slide.querySelector('.present-slide-txt'),inner=slide.querySelector('.present-slide-inner');
+  if(!txt||!inner)return;
+  inner.style.maxWidth=Math.min(900,availW)+'px';
+  var lo=14,hi=_presentFontSize;
+  txt.style.fontSize=hi+'px';
+  if(inner.offsetHeight<=avail)return;
+  for(var i=0;i<9;i++){
+   var mid=Math.floor((lo+hi)/2);
+   txt.style.fontSize=mid+'px';
+   if(inner.offsetHeight<=avail)lo=mid;else hi=mid-1;
+   if(lo>=hi)break;
+  }
+  txt.style.fontSize=lo+'px';
+ });
+}
 function presentFontStep(dir){
- _presentFontSize=Math.max(28,Math.min(120,_presentFontSize+dir*8));
+ _presentFontSize=Math.max(24,Math.min(120,_presentFontSize+dir*8));
  document.querySelectorAll('.present-slide-txt').forEach(function(el){el.style.fontSize=_presentFontSize+'px';});
+ presentFitText();
  // Text reflow changes slide height — resize each canvas to match (debounced via rAF)
  requestAnimationFrame(presentResizeAllCanvases);
 }
@@ -26363,6 +26416,7 @@ function presentSetGroupSize(n){
  buildPresentSlides();
 }
 function buildPresentSlides(){
+ _presentGroupSize=1; // one verse per slide, always
  var bi=CUR.bi,ci=CUR.ci;
  var verses=getV(bi,ci);
  var scroll=ge('presentScroll');
@@ -26383,7 +26437,7 @@ function buildPresentSlides(){
  }
  groups.forEach(function(grp,si){
  var slide=document.createElement('div');
- slide.style.cssText='position:relative;scroll-snap-align:center;min-height:100%;display:flex;align-items:center;justify-content:center;padding:40px 8vw;box-sizing:border-box';
+ slide.style.cssText='position:relative;scroll-snap-align:center;min-height:100%;display:flex;align-items:center;justify-content:center;padding:36px 8vw;box-sizing:border-box';
  slide.dataset.si=si;
  var inner=document.createElement('div');
  inner.className='present-slide-inner';
@@ -26422,6 +26476,7 @@ function buildPresentSlides(){
  }catch(e){}
  var startSi=Math.floor(startVerseVi/_presentGroupSize);
  setTimeout(function(){
+ presentFitText();
  var target=scroll.querySelector('[data-si="'+startSi+'"]');
  if(target)target.scrollIntoView({block:'center'});
  presentResizeAllCanvases();
@@ -26442,7 +26497,7 @@ function buildPresentSlides(){
  if(!window._presentResizeBound){
  window._presentResizeBound=true;
  window.addEventListener('resize',function(){
- if(ge('presentMode').style.display==='flex')presentResizeAllCanvases();
+ if(ge('presentMode').style.display==='flex'){presentFitText();presentResizeAllCanvases();}
  });
  }
 }
