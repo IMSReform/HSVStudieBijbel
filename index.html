@@ -269,7 +269,7 @@ body{padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inse
  font-family:'Georgia',serif;
  font-size:var(--vfs);line-height:1.32;color:var(--ink);flex:1;
  -webkit-user-select:none;user-select:none;
- -webkit-touch-callout:none;touch-action:none;
+ -webkit-touch-callout:none;touch-action:pan-y;
 }
 @media (pointer:fine) and (hover:hover){
  .vtxt{-webkit-user-select:text;user-select:text;}
@@ -24254,6 +24254,42 @@ function _hlPointToRange(x,y){
  }catch(e){}
  return null;
 }
+/* Snap a caret hit-test to the verse text. Dragging a selection handle across the gap between verses / over a verse
+   number / past the end of the list used to resolve to a node OUTSIDE any verse text (e.g. the whole #verses container),
+   which produced "whole chapter selected" or two handles with nothing between them. */
+function _hlPointToVtxtRange(x,y){
+ var r=_hlPointToRange(x,y);
+ try{
+ var okN=function(n){var el=n&&(n.nodeType===3?n.parentElement:n);return !!(el&&el.closest&&el.closest('.vtxt'));};
+ if(r&&okN(r.startContainer)&&okN(r.endContainer))return r;
+ var rp=ge('studyReadPane'),hit=document.elementFromPoint(x,y);
+ var root=(rp&&hit&&rp.contains(hit))?rp:ge('verses');
+ var list=root?root.querySelectorAll('.vtxt'):[];
+ var best=null,bd=1e9;
+ for(var i=0;i<list.length;i++){
+ var b=list[i].getBoundingClientRect();if(!b.height)continue;
+ var d=y<b.top?b.top-y:(y>b.bottom?y-b.bottom:0);
+ if(d<bd){bd=d;best=list[i];if(d===0)break;}
+ }
+ if(!best)return r;
+ var bb=best.getBoundingClientRect();
+ var rr2=null;
+ if(y>=bb.top&&y<=bb.bottom){
+ var cx=Math.min(Math.max(x,bb.left+1),bb.right-1);
+ rr2=_hlPointToRange(cx,y);
+ if(!(rr2&&okN(rr2.startContainer)))rr2=null;
+ }
+ if(!rr2){
+ var tw=document.createTreeWalker(best,NodeFilter.SHOW_TEXT,null),first=null,last=null,n;
+ while((n=tw.nextNode())){if(!n.nodeValue)continue;if(!first)first=n;last=n;}
+ if(!first)return r;
+ rr2=document.createRange();
+ if(y<bb.top){rr2.setStart(first,0);}else{rr2.setStart(last,last.nodeValue.length);}
+ rr2.collapse(true);
+ }
+ return rr2;
+ }catch(e){return r;}
+}
 // A purely visual stand-in for native text selection: draws highlighted
 // boxes over a Range's own client rects without ever calling
 // window.getSelection().addRange() — so no real native Selection object
@@ -24286,7 +24322,8 @@ function _positionSelHandle(el,x,top,height){
  el.style.height=height+'px';
 }
 function _adjustSelFromHandle(side,x,y){
- var pt=_hlPointToRange(x,y);
+ var _inV=false;try{var _se=_selRange&&_selRange.startContainer;_se=_se&&(_se.nodeType===3?_se.parentElement:_se);_inV=!!(_se&&_se.closest&&_se.closest('.vtxt'));}catch(e){}
+ var pt=_inV?_hlPointToVtxtRange(x,y):_hlPointToRange(x,y);
  if(!pt||!_selRange)return;
  if(!_handleDragAnchor){
  if(side==='start'){_handleDragAnchor={container:_selRange.endContainer,offset:_selRange.endOffset};}
@@ -24588,16 +24625,9 @@ function initTextDragSelect(rootId){
  if(!r0){reset();return;}
  engage(tp,r0);
  }else if(ady>10&&ady>adx*1.3){
- // Mostly-vertical movement before the hold fires — this is a plain
- // page scroll, not a selection attempt. touch-action:none on .vtxt
- // means the browser won't pan this on its own, so take over manual
- // scrolling for the rest of this touch (see tp.scrolling above).
- clearTimeout(tp.timer);
- tp.scrolling=true;tp.lastY=e.clientY;tp.lastMoveTime=Date.now();
- e.preventDefault();
- var sc0=_scrollEl();
- if(sc0)sc0.scrollTop-=dy;
- return;
+ // Mostly vertical before the hold fires = plain scroll: .vtxt is touch-action:pan-y, so the browser scrolls natively
+ // (smooth momentum); we only stop waiting for a long-press selection.
+ clearTimeout(tp.timer);reset();return;
  }else{
  return; // inside the small jitter zone — keep waiting
  }
@@ -24609,7 +24639,7 @@ function initTextDragSelect(rootId){
  var vr=vDiv.getBoundingClientRect();
  var cx=Math.min(Math.max(e.clientX,vr.left+1),vr.right-1);
  var cy=Math.min(Math.max(e.clientY,vr.top+1),vr.bottom-1);
- var r1=_hlPointToRange(cx,cy);
+ var r1=_hlPointToVtxtRange(cx,cy);
  if(!r1)return;
  var full=document.createRange();
  var startsFirst=tp.startRange.compareBoundaryPoints(Range.START_TO_START,r1)<=0;
@@ -24669,6 +24699,7 @@ function initTextDragSelect(rootId){
  _showSelHandles(wholeRange);
  }
  }
+ vDiv.addEventListener('touchmove',function(e){if(_tp&&_tp.engaged&&e.cancelable)e.preventDefault();},{passive:false}); // selecting: don't let the page pan under the finger
  vDiv.addEventListener('pointerup',finish);
  vDiv.addEventListener('pointercancel',function(){reset();});
 }
