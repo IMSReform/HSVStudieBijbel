@@ -21990,8 +21990,7 @@ function toggleTransDrop(){
 // so the button silently disappeared whenever split-screen was the only
 // pane actually displaying KJV/Original Texts.
 function strongsIsAvailable(){
- return TRANS==='kjv'||TRANS==='orig'||
- (typeof splitActive!=='undefined'&&splitActive&&(SPLIT_TRANS==='kjv'||SPLIT_TRANS==='orig'));
+ return TRANS==='kjv'||TRANS==='orig'; // header H = top pane only; the split pane has its own H
 }
 function refreshStrongsBtnVisibility(){
  var avail=strongsIsAvailable();
@@ -24905,15 +24904,11 @@ function _updateSplitStrongsBtn(){
  var b=ge('splitStrongsBtn');if(!b)return;
  var ok=(SPLIT_TRANS==='kjv'||SPLIT_TRANS==='rvr1960'||SPLIT_TRANS==='orig');
  b.style.display=ok?'':'none';
- var on=!!(SPLIT_STRONGS||(typeof STRONGS_ON!=='undefined'&&STRONGS_ON));
+ var on=!!SPLIT_STRONGS;
  b.classList.toggle('on',on);
  var sp=ge('splitPane');if(sp)sp.classList.toggle('split-strongs',on);
 }
 function toggleSplitStrongs(){
- var globalOn=!!STRONGS_ON;
- if(globalOn){ // global H is on: switching the lower pane off means turning the global switch off too
-  toggleStrongs();SPLIT_STRONGS=false;_updateSplitStrongsBtn();return;
- }
  SPLIT_STRONGS=!SPLIT_STRONGS;
  _updateSplitStrongsBtn();
  renderSplit();
@@ -29065,7 +29060,7 @@ function setSplitTrans(t){
 function renderSplit(){
  var bi=SPLIT_BI>=0?SPLIT_BI:CUR.bi;
  var ci=SPLIT_CI>=0?SPLIT_CI:CUR.ci;
- if(SPLIT_TRANS==='rvr1960'&&(STRONGS_ON||SPLIT_STRONGS)&&!(typeof RV60_WORDS!=='undefined'&&RV60_WORDS[bi])&&!_splitRwTried[bi]){_splitRwTried[bi]=true;ensureBookExtras(bi).then(function(){if(splitActive&&SPLIT_TRANS==='rvr1960')renderSplit();});}
+ if(SPLIT_TRANS==='rvr1960'&&SPLIT_STRONGS&&!(typeof RV60_WORDS!=='undefined'&&RV60_WORDS[bi])&&!_splitRwTried[bi]){_splitRwTried[bi]=true;ensureBookExtras(bi).then(function(){if(splitActive&&SPLIT_TRANS==='rvr1960')renderSplit();});}
  var ref=ge('splitRef');if(ref)ref.textContent=locBookName(bi)+' '+(ci+1);
  if(!ge('splitSyncBtn')){var sHdr=document.querySelector('.split-pane-hdr');if(sHdr){var sb=document.createElement('button');sb.id='splitSyncBtn';sb.onclick=toggleSplitSync;sb.title=_X('Scroll sync on','Sincronizar desplazamiento: sí','Synchroon scrollen aan','Synchrones Scrollen an');sb.style.cssText='background:none;border:none;cursor:pointer;padding:0 4px;opacity:1;color:var(--teal2)';sb.innerHTML='<svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\"><path d=\"M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71\"/><path d=\"M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71\"/></svg>';sHdr.appendChild(sb);}}
  if(!ge('splitStrongsBtn')){var _ssh=document.querySelector('.split-pane-hdr');if(_ssh){var _ssb=document.createElement('button');_ssb.id='splitStrongsBtn';_ssb.textContent='H';_ssb.title="Strong's";_ssb.onclick=toggleSplitStrongs;_ssh.appendChild(_ssb);}}
@@ -29165,9 +29160,9 @@ function renderSplit(){
  }
 }
 function renderSplitVerses(container,verses){
- if(typeof _strongsRerenderWhenReady==='function'&&(STRONGS_ON||SPLIT_STRONGS)&&SPLIT_TRANS==='kjv')_strongsRerenderWhenReady();
+ if(typeof _strongsRerenderWhenReady==='function'&&SPLIT_STRONGS&&SPLIT_TRANS==='kjv')_strongsRerenderWhenReady();
  var bi=(SPLIT_BI>=0?SPLIT_BI:CUR.bi),ci=(SPLIT_CI>=0?SPLIT_CI:CUR.ci);
- var _sOn=!!(STRONGS_ON||SPLIT_STRONGS);
+ var _sOn=!!SPLIT_STRONGS; // the header H only drives the top pane; the lower pane has its own H button
  verses.forEach(function(txt,vi){
  var row=mk('div','vrow');
  row.style.cssText='display:flex;align-items:flex-start;gap:8px;padding:5px 14px;cursor:pointer;-webkit-user-select:none;user-select:none;position:relative';
