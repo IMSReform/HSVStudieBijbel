@@ -1000,6 +1000,17 @@ body.dark .xchip:active,body.dark .xchip:hover{background:var(--teal2);color:#0a
  opacity:.95;transition:background .15s,opacity .15s;
 }
 .split-pull:hover .split-pull-bar,.split-pull:active .split-pull-bar{opacity:.9;background:var(--teal2)}
+/* Touch: popup text uses the app's own selection (initPopupTouchSelect) so iOS' native Copy/Look Up menu never appears */
+@media (pointer:coarse){
+ #sheet-vac.open .vac-pane *:not(textarea):not(input),.vac-panes,.vac-panes *:not(textarea):not(input),#xpTxt,#xpTxt *{-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important}
+ .vac-panes textarea,.vac-panes input,#sheet-vac .vac-pane textarea{-webkit-user-select:text!important;user-select:text!important}
+ .vac-panes,#xpTxt{touch-action:pan-y}
+}
+/* split-screen pane Strong's switch */
+#splitPane.split-strongs .w.has-strongs,#splitPane.split-strongs .hw{pointer-events:auto;cursor:pointer}
+#splitPane.split-strongs .has-strongs,#splitPane.split-strongs .hw{border-bottom-color:var(--teal2)}
+#splitStrongsBtn{margin-left:8px;min-width:30px;height:24px;padding:0 8px;border-radius:7px;border:1px solid var(--teal2);background:transparent;color:var(--teal2);font-weight:800;font-size:12px;cursor:pointer;font-family:inherit;flex-shrink:0}
+#splitStrongsBtn.on{background:var(--teal2);color:#fff}
 /* Split pane improvements */
 #splitPane{box-shadow:none;border-top:4px solid var(--teal2)}
 body.dark #splitPane{background:#0d2830}
@@ -22635,6 +22646,7 @@ function toggleAC(vi,bi,ci,txt){
  setTimeout(function(){positionVacNear(vi);},60);
 }
 function buildAC(el,vi,bi,ci,txt){
+ try{el.dataset.acB=bi;el.dataset.acC=ci;el.dataset.acV=vi;}catch(e){}
  var key=bi+'-'+ci+'-'+vi;
  var tabsEl=mk('div','vac-tabs');
  var panesEl=mk('div','vac-panes');
@@ -24753,6 +24765,159 @@ function _flingScrollVel(vel){
  requestAnimationFrame(step);
  }
  requestAnimationFrame(step);
+}
+/* Popup text selection (verse popup tabs, inline accordions, cross-reference popup) on touch screens.
+   Same idea as the reader/commentary-sheet: nothing native engages (text is user-select:none on touch), so iOS never shows its
+   own Copy/Look Up menu. A press-and-drag (or horizontal drag) paints our own highlight and opens the app's own popup (VAM). */
+function initPopupTouchSelect(){
+ if(window._ptsInit)return;window._ptsInit=true;
+ var SEL='.vac-panes,#xpTxt';
+ var tp=null;
+ function contOf(el){return el&&el.closest?el.closest(SEL):null;}
+ function segsOf(range,C){
+  var out=[];
+  try{
+   var tw=document.createTreeWalker(C,NodeFilter.SHOW_TEXT,{acceptNode:function(n){
+    if(!n.nodeValue)return NodeFilter.FILTER_REJECT;
+    return range.intersectsNode(n)?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT;}});
+   var n;
+   while((n=tw.nextNode())){
+    var s=0,e=n.nodeValue.length;
+    if(n===range.startContainer)s=range.startOffset;
+    if(n===range.endContainer)e=range.endOffset;
+    if(e>s)out.push({node:n,s:s,e:e});
+   }
+  }catch(err){}
+  return out;
+ }
+ function paint(full,C){
+  _clearRangeOverlay();
+  var segs=segsOf(full,C);
+  for(var i=0;i<segs.length;i++){
+   try{
+    var r=document.createRange();r.setStart(segs[i].node,segs[i].s);r.setEnd(segs[i].node,segs[i].e);
+    var list=r.getClientRects();
+    for(var j=0;j<list.length;j++){
+     var q=list[j];if(q.width<1||q.height<1)continue;
+     var d=document.createElement('div');d.className='range-overlay-box';
+     d.style.left=q.left+'px';d.style.top=q.top+'px';d.style.width=q.width+'px';d.style.height=q.height+'px';d.style.zIndex=19000;
+     document.body.appendChild(d);_rangeOverlayEls.push(d);
+    }
+   }catch(err){}
+  }
+ }
+ function textOf(full,C){
+  var segs=segsOf(full,C),o='';
+  segs.forEach(function(sg){o+=sg.node.nodeValue.slice(sg.s,sg.e);});
+  return o.replace(/\s+/g,' ').trim();
+ }
+ function rng(t,x,y){
+  var r1=_hlPointToRange(x,y);if(!r1||!t.C.contains(r1.startContainer))return null;
+  var full=document.createRange();
+  if(t.r0.compareBoundaryPoints(Range.START_TO_START,r1)<=0){full.setStart(t.r0.startContainer,t.r0.startOffset);full.setEnd(r1.startContainer,r1.startOffset);}
+  else{full.setStart(r1.startContainer,r1.startOffset);full.setEnd(t.r0.startContainer,t.r0.startOffset);}
+  return full;
+ }
+ function engage(t){
+  var r0=_hlPointToRange(t.sx,t.sy);
+  if(!r0||!t.C.contains(r0.startContainer))return false;
+  if(_ov_open())closeVAM();
+  t.r0=r0.cloneRange();t.engaged=true;
+  try{if(navigator.vibrate)navigator.vibrate(8);}catch(e){}
+  return true;
+ }
+ function _ov_open(){var v=ge('vamp');return !!(v&&v.classList.contains('on'));}
+ function reset(){if(tp&&tp.timer)clearTimeout(tp.timer);tp=null;}
+ document.addEventListener('pointerdown',function(e){
+  if(tp||e.pointerType==='mouse')return;
+  var C=contOf(e.target);if(!C)return;
+  if(e.target.closest&&e.target.closest('button,a,input,textarea,select,.vac-tab,[contenteditable="true"]'))return;
+  if(HL_MODE&&STRONGS_ON)return;
+  tp={pid:e.pointerId,C:C,sx:e.clientX,sy:e.clientY,engaged:false,full:null,r0:null};
+  tp.timer=setTimeout(function(){if(tp&&!tp.engaged)engage(tp);},420);
+ },{passive:true});
+ document.addEventListener('pointermove',function(e){
+  if(!tp||e.pointerId!==tp.pid)return;
+  var dx=e.clientX-tp.sx,dy=e.clientY-tp.sy;
+  if(!tp.engaged){
+   if(Math.abs(dx)>10&&Math.abs(dx)>Math.abs(dy)*1.15){clearTimeout(tp.timer);if(!engage(tp)){reset();return;}}
+   else if(Math.abs(dy)>8&&Math.abs(dy)>Math.abs(dx)*1.2){reset();return;} // vertical = native scroll
+   else return;
+  }
+  if(e.cancelable)e.preventDefault();
+  var cr=tp.C.getBoundingClientRect();
+  var full=rng(tp,Math.min(Math.max(e.clientX,cr.left+1),cr.right-1),Math.min(Math.max(e.clientY,cr.top+1),cr.bottom-1));
+  if(full){tp.full=full;paint(full,tp.C);}
+ },{passive:false});
+ document.addEventListener('touchmove',function(e){if(tp&&tp.engaged&&e.cancelable)e.preventDefault();},{passive:false});
+ function end(e){
+  if(!tp||e.pointerId!==tp.pid)return;
+  var t=tp;reset();
+  if(!t.engaged)return;
+  _markDragSelHandled();
+  var full=t.full,txt=full?textOf(full,t.C):'';
+  if(!txt){_clearRangeOverlay();return;}
+  _selRange=full.cloneRange();_selText=txt;
+  var lastRect=null;
+  try{var sg=segsOf(full,t.C);var rr=document.createRange();var l=sg[sg.length-1];rr.setStart(l.node,l.s);rr.setEnd(l.node,l.e);var lr=rr.getClientRects();lastRect=lr[lr.length-1];}catch(er){}
+  var fr=full.getBoundingClientRect();
+  var anchor=document.createElement('div');
+  anchor.style.cssText='position:fixed;left:'+Math.max(8,fr.left)+'px;top:'+Math.max(8,((lastRect?lastRect.bottom:fr.bottom)||0)+4)+'px;width:1px;height:1px;z-index:1';
+  document.body.appendChild(anchor);
+  var el=full.startContainer.nodeType===3?full.startContainer.parentElement:full.startContainer;
+  var done=false;
+  try{
+   _egwSel=null;
+   var shim={rangeCount:1,getRangeAt:function(){return full;}};
+   var es=_egwFromSelection(el,shim);
+   if(es){
+    _egwSel=es;
+    var kp=es.k.split('-').map(Number);
+    if(isNaN(kp[0])&&typeof _cristoTarget==='function')kp=_cristoTarget(es.k);
+    vamTarget={bi:kp[0],ci:kp[1],vi:kp[2],txt:txt};
+    if(HL_MODE)_egwApply(HL_TYPE==='ul'?'ul':'hl',HL_COLOR);
+    else showVAM(kp[0],kp[1],kp[2],txt,anchor,null);
+    done=true;
+   }
+  }catch(er){_egwSel=null;}
+  if(!done&&t.C.id==='xpTxt'){
+   try{var xp=(typeof xrefTarget!=='undefined'&&xrefTarget)?parseRef(xrefTarget):null;
+    if(xp){showVAM(xp.bi,xp.ci,xp.vi,txt,anchor,null);done=true;}}catch(er){}
+  }
+  if(!done){
+   var host=t.C.closest?t.C.closest('[data-ac-b]'):null;
+   if(host){
+    var b=parseInt(host.dataset.acB,10),c=parseInt(host.dataset.acC,10),v=parseInt(host.dataset.acV,10);
+    if(HL_MODE)applyHlAuto(b,c,v,txt);else showVAM(b,c,v,txt,anchor,null);
+    done=true;
+   }
+  }
+  if(!done){_clearRangeOverlay();_selRange=null;_selText='';}
+  else if(_ov_open()){paint(full,t.C);}
+  setTimeout(function(){try{if(anchor.parentNode)anchor.parentNode.removeChild(anchor);}catch(er){}},200);
+ }
+ document.addEventListener('pointerup',end,true);
+ document.addEventListener('pointercancel',function(e){if(tp&&e.pointerId===tp.pid){var had=tp.engaged;reset();if(had)_clearRangeOverlay();}},true);
+}
+var SPLIT_STRONGS=false; // Strong's for the lower (split-screen) pane only
+var _splitRwTried={};
+function _updateSplitStrongsBtn(){
+ var b=ge('splitStrongsBtn');if(!b)return;
+ var ok=(SPLIT_TRANS==='kjv'||SPLIT_TRANS==='rvr1960'||SPLIT_TRANS==='orig');
+ b.style.display=ok?'':'none';
+ var on=!!(SPLIT_STRONGS||(typeof STRONGS_ON!=='undefined'&&STRONGS_ON));
+ b.classList.toggle('on',on);
+ var sp=ge('splitPane');if(sp)sp.classList.toggle('split-strongs',on);
+}
+function toggleSplitStrongs(){
+ var globalOn=!!STRONGS_ON;
+ if(globalOn){ // global H is on: switching the lower pane off means turning the global switch off too
+  toggleStrongs();SPLIT_STRONGS=false;_updateSplitStrongsBtn();return;
+ }
+ SPLIT_STRONGS=!SPLIT_STRONGS;
+ _updateSplitStrongsBtn();
+ renderSplit();
+ try{toast(T(SPLIT_STRONGS?'strongs_on':'strongs_off'));}catch(e){}
 }
 function initCmntTouchSelect(){
  var L=ge('cmntList');if(!L||L._cts)return;L._cts=true;
@@ -28363,6 +28528,7 @@ function init(){
  initHlDragSelect('studyReadPane'); // same highlighter + hold/drag selection inside Study Mode's read pane
  initTextDragSelect('studyReadPane');
  initCmntTouchSelect();
+ initPopupTouchSelect();
  ['chapterScroll','studyReadPane'].forEach(function(id){
  var sc=ge(id);if(!sc)return;
  var q=false;
@@ -28899,8 +29065,11 @@ function setSplitTrans(t){
 function renderSplit(){
  var bi=SPLIT_BI>=0?SPLIT_BI:CUR.bi;
  var ci=SPLIT_CI>=0?SPLIT_CI:CUR.ci;
+ if(SPLIT_TRANS==='rvr1960'&&(STRONGS_ON||SPLIT_STRONGS)&&!(typeof RV60_WORDS!=='undefined'&&RV60_WORDS[bi])&&!_splitRwTried[bi]){_splitRwTried[bi]=true;ensureBookExtras(bi).then(function(){if(splitActive&&SPLIT_TRANS==='rvr1960')renderSplit();});}
  var ref=ge('splitRef');if(ref)ref.textContent=locBookName(bi)+' '+(ci+1);
  if(!ge('splitSyncBtn')){var sHdr=document.querySelector('.split-pane-hdr');if(sHdr){var sb=document.createElement('button');sb.id='splitSyncBtn';sb.onclick=toggleSplitSync;sb.title=_X('Scroll sync on','Sincronizar desplazamiento: sí','Synchroon scrollen aan','Synchrones Scrollen an');sb.style.cssText='background:none;border:none;cursor:pointer;padding:0 4px;opacity:1;color:var(--teal2)';sb.innerHTML='<svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\"><path d=\"M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71\"/><path d=\"M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71\"/></svg>';sHdr.appendChild(sb);}}
+ if(!ge('splitStrongsBtn')){var _ssh=document.querySelector('.split-pane-hdr');if(_ssh){var _ssb=document.createElement('button');_ssb.id='splitStrongsBtn';_ssb.textContent='H';_ssb.title="Strong's";_ssb.onclick=toggleSplitStrongs;_ssh.appendChild(_ssb);}}
+ _updateSplitStrongsBtn();
  wireSplitSync();
  var vDiv=ge('splitVerses');if(!vDiv)return;
  vDiv.innerHTML='';
@@ -28996,7 +29165,9 @@ function renderSplit(){
  }
 }
 function renderSplitVerses(container,verses){
- var bi=CUR.bi,ci=CUR.ci;
+ if(typeof _strongsRerenderWhenReady==='function'&&(STRONGS_ON||SPLIT_STRONGS)&&SPLIT_TRANS==='kjv')_strongsRerenderWhenReady();
+ var bi=(SPLIT_BI>=0?SPLIT_BI:CUR.bi),ci=(SPLIT_CI>=0?SPLIT_CI:CUR.ci);
+ var _sOn=!!(STRONGS_ON||SPLIT_STRONGS);
  verses.forEach(function(txt,vi){
  var row=mk('div','vrow');
  row.style.cssText='display:flex;align-items:flex-start;gap:8px;padding:5px 14px;cursor:pointer;-webkit-user-select:none;user-select:none;position:relative';
@@ -29014,13 +29185,14 @@ function renderSplitVerses(container,verses){
  row.addEventListener('touchmove',function(){clearTimeout(_ht);},{passive:true});
  var vn=mk('div','vnum');vn.textContent=vi+1;
  vn.style.cssText='cursor:pointer;user-select:none';
- var vt=mk('p','');
+ row.dataset.vi=vi;
+ var vt=mk('p',(_sOn&&SPLIT_TRANS==='rvr1960')?'vtxt':'');
  vt.style.cssText='font-family:\'Georgia\',serif;font-size:var(--vfs);line-height:1.32;color:var(--ink);margin:0;flex:1';
  // Only tag words when this pane is actually showing KJV — WS{} is built from
  // English KJV vocabulary, so applying it to Dutch/Spanish/German text can
  // accidentally match a short cognate word (e.g. Dutch "in") and pop up a
  // completely unrelated Greek/Hebrew Strong's number.
- if(STRONGS_ON&&SPLIT_TRANS==='kjv'){
+ if(_sOn&&SPLIT_TRANS==='kjv'){
  var _wsDictSplit=(bi<39)?WS_OT:WS_NT;
  txt.split(/(\s+)/).forEach(function(part){
  if(/^\s+$/.test(part)){vt.appendChild(document.createTextNode(part));return;}
@@ -29056,6 +29228,7 @@ function renderSplitVerses(container,verses){
  row.appendChild(vn);row.appendChild(vt);
  container.appendChild(row);
  });
+ if(_sOn&&SPLIT_TRANS==='rvr1960'){try{applyRV60StrongsSpans(container,bi,ci);}catch(e){}}
 }
 function syncSplit(){if(splitActive&&SPLIT_BI<0)renderSplit();}
 
