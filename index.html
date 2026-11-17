@@ -28622,9 +28622,19 @@ var _selTimer=null;
 var _selActive=false; // true while user is dragging selection handles
 var _vampOpenTime=0; // timestamp when VAM was last opened
 function initTextSelection(){
+ function _spStrSel(){
+ try{
+ if(typeof SPLIT_STRONGS==='undefined'||!SPLIT_STRONGS)return false;
+ var sp=document.getElementById('splitPane');if(!sp)return false;
+ var sel=window.getSelection();if(!sel||!sel.rangeCount)return false;
+ var n=sel.getRangeAt(0).commonAncestorContainer;if(n&&n.nodeType===3)n=n.parentNode;
+ if(n&&sp.contains(n)){try{sel.removeAllRanges();}catch(e){}return true;}
+ }catch(e){}
+ return false;
+ }
  function handleSel(){
  try{
- if(STRONGS_ON) return;
+ if(STRONGS_ON||_spStrSel()) return;
  var sel=window.getSelection();
  if(!sel||sel.isCollapsed||!sel.toString().trim()) return;
  var selectedText=sel.toString().trim();
@@ -28707,7 +28717,7 @@ function initTextSelection(){
  // This avoids interfering with handle dragging.
  var _lastSelText='';
  document.addEventListener('selectionchange',function(){
- if(STRONGS_ON) return;
+ if(STRONGS_ON||_spStrSel()) return;
  clearTimeout(_selTimer);
  var sel=window.getSelection();
  if(!sel||sel.isCollapsed||!sel.toString().trim()){_lastSelText='';return;}
@@ -28726,7 +28736,7 @@ function initTextSelection(){
 
  // touchend fallback for phone — fires after finger lifts if selection exists
  document.addEventListener('touchend',function(e){
- if(STRONGS_ON) return;
+ if(STRONGS_ON||_spStrSel()) return;
  if(ge('vamp')&&ge('vamp').contains(e.target)) return;
  // Short delay so iOS finalizes selection
  setTimeout(function(){
@@ -28742,7 +28752,7 @@ function initTextSelection(){
 
  // Desktop mouseup
  document.addEventListener('mouseup',function(e){
- if(STRONGS_ON) return;
+ if(STRONGS_ON||_spStrSel()) return;
  if(ge('vamp')&&ge('vamp').contains(e.target)) return;
  clearTimeout(_selTimer);
  _selTimer=setTimeout(handleSel,150);
