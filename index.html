@@ -923,7 +923,7 @@ body.dark .nav .nb.on svg,body.dark .nav .nb.on span{color:#fff}
 .split-active #chapterScroll{flex:1 1 50%!important;min-height:80px}
 #splitPane{display:none;flex-direction:column;border-top:4px solid var(--teal2)}
 .split-active #splitPane{display:flex!important;flex:1 1 45%;min-height:80px}
-@media(min-width:1100px){
+@media(min-width:1100px),(orientation:landscape) and (min-width:560px){
  .split-active{flex-direction:row!important}
  .split-active #chapterScroll{flex:1 1 50%!important}
  #splitPane{border-top:none;border-left:4px solid var(--teal2)}
@@ -28795,6 +28795,7 @@ var TRANS_LABELS={
  orig:{name:'Original Texts',short:'Orig',sub:'Hebrew OT • Greek NT'}
 };
 
+function _splitWide(){return window.innerWidth>=1100||(window.innerWidth>window.innerHeight&&window.innerWidth>=560);}
 function toggleSplit(){
  splitActive=!splitActive;
  var btn=ge('splitBtn');
@@ -28840,11 +28841,11 @@ function initSplitDrag(){
  handle.addEventListener('touchstart',function(e){
  startX=e.touches[0].clientX;
  startY=e.touches[0].clientY;
- startSize=window.innerWidth>=768?splitEl.offsetWidth:splitEl.offsetHeight;
+ startSize=_splitWide()?splitEl.offsetWidth:splitEl.offsetHeight;
  },{passive:true});
  handle.addEventListener('touchmove',function(e){
  e.preventDefault();
- if(window.innerWidth>=1100){
+ if(_splitWide()){
  var dx=startX-e.touches[0].clientX;
  var newW=Math.max(160,Math.min(window.innerWidth*0.65,startSize+dx));
  splitEl.style.width=newW+'px';
@@ -28856,7 +28857,7 @@ function initSplitDrag(){
  }
  },{passive:false});
  handle.addEventListener('touchend',function(){
- if(window.innerWidth<1100&&splitEl.offsetHeight<100)toggleSplit();
+ if(!_splitWide()&&splitEl.offsetHeight<100)toggleSplit();
  },{passive:true});
 
  // Wire the KJV island pill to drag-to-close the split pane (touch + mouse)
@@ -28871,6 +28872,7 @@ function initSplitDrag(){
  tMoved=false;
  }
  function onDragMove(clientY){
+ if(_splitWide())return;
  tMoved=true;
  var dy=clientY-tStartY;
  var newH=Math.max(100,tStartH-dy);
@@ -28983,7 +28985,7 @@ function applySplitOrientation(){
  var mainEl=document.querySelector('.main');
  var splitEl=ge('splitPane');
  if(!mainEl||!splitEl)return;
- var isWide=window.innerWidth>=1100;
+ var isWide=_splitWide();
  var pull=ge('splitPull');
  if(isWide){
  mainEl.style.flexDirection='row';
@@ -29002,6 +29004,20 @@ function applySplitOrientation(){
  }
 }
 
+(function(){
+ var _t=null;
+ function relayout(){
+ try{
+ if(!splitActive)return;
+ var sp=ge('splitPane');if(!sp)return;
+ sp.style.width='';sp.style.height='';
+ applySplitOrientation();
+ }catch(e){}
+ }
+ function sched(){clearTimeout(_t);_t=setTimeout(relayout,120);}
+ window.addEventListener('resize',sched);
+ window.addEventListener('orientationchange',function(){setTimeout(relayout,350);});
+})();
 function setSplitOrientation(o){
  splitOrientation=o;
  if(splitActive)applySplitOrientation();
