@@ -21881,7 +21881,7 @@ function stepFS(dir){setFS((settings.fs||20)+dir*FS_STEP);}
 function updateFSLabel(){var el=ge('sdFsVal');if(el)el.textContent=(settings.fs||20)+'px';}
 
 // \u2500\u2500 LANGUAGE \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-function setLang(l){
+function setLang(l){setTimeout(function(){try{_presLbl();}catch(e){}},60);
  LANG=l;try{setTimeout(_xlRun,0);}catch(e){}
  settings.lang=l;saveSettings();
  ['en','nl','es'].forEach(function(x){
@@ -25878,6 +25878,7 @@ document.addEventListener('pointerup',end,true);document.addEventListener('point
 try{var sv=parseFloat(localStorage.getItem(KEY));if(sv>=0)setTimeout(function(){apply(sv);},0);}catch(x){}
 window.addEventListener('resize',function(){var el=bar();if(el&&el.style.bottom)apply(parseFloat(el.style.bottom));});
 })();
+function _presLbl(){var l=document.getElementById('presentDrawToggleLbl');if(!l)return;var on=(typeof _presentDrawOn!=='undefined')&&_presentDrawOn;var M=on?{en:'Scroll',nl:'Scrollen',es:'Desplazar'}:{en:'Draw',nl:'Tekenen',es:'Dibujar'};l.textContent=M[LANG]||(on?'Scroll':'Draw');}
 function presentToggleDraw(){
  _presentDrawOn=!_presentDrawOn;
  presentResetStretch();
@@ -25949,7 +25950,7 @@ function presentClearSlide(){
  _presentLaser=null;
  presentRedrawSlide(_presentCurSi);
 }
-function openPresentMode(){
+function openPresentMode(){setTimeout(function(){try{_presLbl();}catch(e){}},30);
  var pm=ge('presentMode');
  if(!pm)return;
  pm.style.display='flex';
@@ -26635,8 +26636,9 @@ function studyOpenSheet(id){
 function studyCloseActivePopup(){
  if(_studyPopupId)closeSheet(_studyPopupId);
 }
+function _presFits(txt,inner,avail){return inner.offsetHeight<=avail&&txt.scrollWidth<=inner.clientWidth+2;}
 function presentFitText(){
- // Each slide shrinks its text (never below 14px) until the verse fits the screen; _presentFontSize is the preferred maximum.
+ // Each slide shrinks its text (never below 14px) until the verse fits the screen (height AND width); _presentFontSize is the preferred maximum.
  var scroll=ge('presentScroll');if(!scroll)return;
  var avail=scroll.clientHeight-72, availW=scroll.clientWidth*0.84;
  Array.prototype.forEach.call(scroll.children,function(slide){
@@ -26645,18 +26647,27 @@ function presentFitText(){
   inner.style.maxWidth=Math.min(900,availW)+'px';
   var lo=14,hi=_presentFontSize;
   txt.style.fontSize=hi+'px';
-  if(inner.offsetHeight<=avail)return;
-  for(var i=0;i<9;i++){
+  if(_presFits(txt,inner,avail))return;
+  for(var i=0;i<10;i++){
    var mid=Math.floor((lo+hi)/2);
    txt.style.fontSize=mid+'px';
-   if(inner.offsetHeight<=avail)lo=mid;else hi=mid-1;
+   if(_presFits(txt,inner,avail))lo=mid;else hi=mid-1;
    if(lo>=hi)break;
   }
   txt.style.fontSize=lo+'px';
  });
 }
+function presentRefit(){
+ var pm=ge('presentMode');if(!pm||pm.style.display!=='flex')return;
+ presentFitText();presentResizeAllCanvases();
+ try{var sc=ge('presentScroll'),t=sc.querySelector('[data-si="'+_presentCurSi+'"]');if(t)t.scrollIntoView({block:'center'});}catch(e){}
+}
+(function(){var tm=[];function go(){tm.forEach(clearTimeout);tm=[60,250,600,1100].map(function(d){return setTimeout(presentRefit,d);});}
+window.addEventListener('orientationchange',go);window.addEventListener('resize',go);
+try{if(window.visualViewport)window.visualViewport.addEventListener('resize',go);}catch(e){}
+try{if(screen.orientation)screen.orientation.addEventListener('change',go);}catch(e){}})();
 function presentFontStep(dir){
- _presentFontSize=Math.max(24,Math.min(120,_presentFontSize+dir*8));
+ _presentFontSize=Math.max(24,Math.min(320,_presentFontSize+dir*(_presentFontSize>=96?16:8)));
  document.querySelectorAll('.present-slide-txt').forEach(function(el){el.style.fontSize=_presentFontSize+'px';});
  presentFitText();
  // Text reflow changes slide height — resize each canvas to match (debounced via rAF)
