@@ -30203,7 +30203,8 @@ function gdSaveClientId(id){
 }
 
 function gdLoadConfig(){
- GD.CLIENT_ID=localStorage.getItem('rbGdClientId')||'';
+ var GD_DEFAULT_ID='568167692733-f8p3v5gik46j4b37mk1m8voc2r1l6pis.apps.googleusercontent.com';
+ GD.CLIENT_ID=localStorage.getItem('rbGdClientId')||GD_DEFAULT_ID;
  GD.TOKEN=localStorage.getItem('rbGdToken')||null;
  GD.TOKEN_EXPIRY=parseInt(localStorage.getItem('rbGdExpiry')||'0');
  GD.FILE_ID=localStorage.getItem('rbGdFileId')||null;
