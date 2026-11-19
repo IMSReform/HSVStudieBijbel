@@ -1679,6 +1679,7 @@ function _bootSplashDone(){var w=Math.max(0,1100-(Date.now()-window._bootT0));se
  <div id="presentScroll" style="position:absolute;inset:0;overflow-y:scroll;overscroll-behavior:contain;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch"></div>
  </div>
  <div id="presentDrawBar" style="position:absolute;left:0;right:0;bottom:64px;overflow-x:auto;overflow-y:hidden;max-height:0;display:flex;align-items:center;justify-content:flex-start;gap:12px;padding:0 14px;background:rgba(10,30,40,.85);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-radius:18px 18px 0 0;flex-wrap:nowrap;transition:max-height .22s ease,padding .22s ease;pointer-events:none;z-index:5;-webkit-overflow-scrolling:touch">
+ <div id="pdGrip" title="Move" style="flex-shrink:0;width:26px;height:38px;display:flex;align-items:center;justify-content:center;color:#fff;opacity:.7;touch-action:none;cursor:grab;margin-left:-6px"><svg width="14" height="18" viewBox="0 0 14 18" fill="currentColor"><circle cx="4" cy="4" r="1.6"/><circle cx="10" cy="4" r="1.6"/><circle cx="4" cy="9" r="1.6"/><circle cx="10" cy="9" r="1.6"/><circle cx="4" cy="14" r="1.6"/><circle cx="10" cy="14" r="1.6"/></svg></div>
  <button id="pdSwatch_e0533d" onclick="presentSetColor('#e0533d')" class="pd-swatch" style="width:26px;height:26px;border-radius:50%;background:#e0533d;border:2px solid #fff;cursor:pointer;flex-shrink:0"></button>
  <button id="pdSwatch_f0e020" onclick="presentSetColor('#f0e020')" class="pd-swatch" style="width:26px;height:26px;border-radius:50%;background:#f0e020;border:2px solid transparent;cursor:pointer;flex-shrink:0"></button>
  <button id="pdSwatch_3da3f0" onclick="presentSetColor('#3da3f0')" class="pd-swatch" style="width:26px;height:26px;border-radius:50%;background:#3da3f0;border:2px solid transparent;cursor:pointer;flex-shrink:0"></button>
@@ -25867,6 +25868,16 @@ function presentStrokeStroke(ctx,s){
  }
  ctx.restore();
 }
+(function(){var drag=null,KEY='rbPresBarBottom';
+function bar(){return document.getElementById('presentDrawBar');}
+function apply(b){var el=bar();if(!el)return;var p=el.offsetParent||el.parentNode,ph=p.clientHeight||window.innerHeight,eh=el.offsetHeight||70;b=Math.max(0,Math.min(ph-Math.max(eh,70)-4,b));el.style.bottom=b+'px';el.style.borderRadius=b>66?'18px':'18px 18px 0 0';return b;}
+document.addEventListener('pointerdown',function(e){var g=e.target.closest&&e.target.closest('#pdGrip');if(!g)return;var el=bar();drag={y:e.clientY,b:parseFloat(el.style.bottom)||64,id:e.pointerId,g:g};try{g.setPointerCapture(e.pointerId);}catch(x){}e.preventDefault();},true);
+document.addEventListener('pointermove',function(e){if(!drag)return;apply(drag.b-(e.clientY-drag.y));e.preventDefault();},true);
+function end(){if(!drag)return;drag=null;try{localStorage.setItem(KEY,String(parseFloat(bar().style.bottom)||64));}catch(x){}}
+document.addEventListener('pointerup',end,true);document.addEventListener('pointercancel',end,true);
+try{var sv=parseFloat(localStorage.getItem(KEY));if(sv>=0)setTimeout(function(){apply(sv);},0);}catch(x){}
+window.addEventListener('resize',function(){var el=bar();if(el&&el.style.bottom)apply(parseFloat(el.style.bottom));});
+})();
 function presentToggleDraw(){
  _presentDrawOn=!_presentDrawOn;
  presentResetStretch();
