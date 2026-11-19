@@ -1459,6 +1459,7 @@ function _bootSplashDone(){var w=Math.max(0,1100-(Date.now()-window._bootT0));se
  <button id="gdSignInBtn" class="note-save" style="font-size:12px;padding:7px 14px" onclick="gdSignIn()">Sign in with Google</button>
  <button id="gdSignOutBtn" class="note-cancel" style="font-size:12px;padding:7px 14px;display:none" onclick="if(confirm(_X('Sign out?','¿Cerrar sesión?','Uitloggen?','Abmelden?')))gdSignOut()">Sign out</button>
  <button id="gdSyncBtn" class="note-save" style="font-size:12px;padding:7px 14px;background:var(--teal2)" onclick="gdSync(true)">Sync now</button>
+ <button id="gdRevBtn" class="note-cancel" style="font-size:12px;padding:7px 14px" onclick="gdOpenRevisions()">Restore earlier version</button>
  </div>
  </div>
 </details>
@@ -21941,7 +21942,8 @@ function _xlRun(){
  }catch(er){console.warn('xl',er);}
 }
 function _sdTitles(){var D={en:['Display','AI features','Google Drive'],nl:['Weergave','AI-functies','Google Drive'],es:['Apariencia','Funciones de IA','Google Drive'],de:['Darstellung','KI-Funktionen','Google Drive']}[typeof LANG!=='undefined'?LANG:'en']||['Display','AI features','Google Drive'];['disp','ai','drive'].forEach(function(k,i){var e=document.getElementById('sdgt-'+k);if(e)e.textContent=D[i];});}
-function updateNavLabels(){try{_sdTitles();}catch(e){}
+function _gdrLbl(){var e=document.getElementById("gdRevBtn");if(e)e.textContent=_gdrT("btn");}
+function updateNavLabels(){try{_gdrLbl();}catch(e){}try{_sdTitles();}catch(e){}
  try{_xlRun();}catch(e){}
  var ids=['read','hist','plans','more'];
  var keys=['read','hist','plans','more'];
@@ -30331,20 +30333,73 @@ function gdGetUserData(){
 }
 
 // Restore user data from Drive object
+function _gdIsObj(o){return o&&typeof o==='object'&&!Array.isArray(o);}
+function _gdMergeObj(local,remote){ // union by key; remote wins on conflicts, nothing local is ever dropped
+ if(_gdIsObj(local)&&_gdIsObj(remote))return Object.assign({},local,remote);
+ if(Array.isArray(local)&&Array.isArray(remote)){var seen={},out=[];local.concat(remote).forEach(function(x){var k=JSON.stringify(x);if(!seen[k]){seen[k]=1;out.push(x);}});return out;}
+ var empty=function(x){return x==null||(Array.isArray(x)&&!x.length)||(_gdIsObj(x)&&!Object.keys(x).length);};
+ return empty(remote)?local:(empty(local)?remote:remote);
+}
+function gdBackupLocal(){
+ try{
+  var old=localStorage.getItem('rbBak1');if(old)localStorage.setItem('rbBak2',old);
+  localStorage.setItem('rbBak1',JSON.stringify({ts:Date.now(),settings:settings,histList:histList,planProg:planProg,bsAnswers:bsAnswers}));
+ }catch(e){}
+}
+// Restore user data from Drive object - MERGES with what is on this device (never replaces it)
 function gdRestoreUserData(data){
  if(!data||!data.v||data.v<2) return;
+ gdBackupLocal();
  if(data.settings){
- // Merge — Drive wins for user data, but keep app defaults for missing keys
- settings=Object.assign({fs:20,bookmarks:{},highlights:{},notes:{},egwQuotes:{}},data.settings);
- saveSettings();
- document.documentElement.style.setProperty('--vfs',settings.fs+'px');
+  var L=settings||{},R=data.settings||{};
+  var m=Object.assign({fs:20,bookmarks:{},highlights:{},notes:{},egwQuotes:{}},L,R);
+  ['bookmarks','highlights','notes','egwQuotes'].forEach(function(k){m[k]=_gdMergeObj(L[k],R[k])||{};});
+  m._lastSync=L._lastSync||0;
+  settings=m;
+  saveSettings();
+  document.documentElement.style.setProperty('--vfs',settings.fs+'px');
  }
- if(data.histList){histList=data.histList;try{localStorage.setItem('rbH2',JSON.stringify(histList));}catch(e){}}
- if(data.planProg){planProg=data.planProg;try{localStorage.setItem('rbP2',JSON.stringify(planProg));}catch(e){}}
- if(data.bsAnswers){bsAnswers=data.bsAnswers;try{localStorage.setItem('rbBS2',JSON.stringify(bsAnswers));}catch(e){}}
- if(data.wordThreads){saveThreads(data.wordThreads);}
+ if(data.histList){histList=_gdMergeObj(histList,data.histList);try{localStorage.setItem('rbH2',JSON.stringify(histList.slice(0,50)));}catch(e){}}
+ if(data.planProg){planProg=_gdMergeObj(planProg,data.planProg);try{localStorage.setItem('rbP2',JSON.stringify(planProg));}catch(e){}}
+ if(data.bsAnswers){bsAnswers=_gdMergeObj(bsAnswers,data.bsAnswers);try{localStorage.setItem('rbBS2',JSON.stringify(bsAnswers));}catch(e){}}
+ if(data.wordThreads){try{saveThreads(_gdMergeObj(getThreads(),data.wordThreads));}catch(e){}}
  if(data.xrefs){gdRestoreAllXrefs(data.xrefs);}
  if(data.aiCache){Object.assign(aiCache,data.aiCache);saveAiCacheLocal();}
+}
+// ── Restore an earlier version (Drive keeps previous versions of the sync file, plus 2 local safety copies) ──
+var _GDR_T={en:{btn:'Restore earlier version',title:'Restore earlier version',none:'No earlier versions found.',local:'Safety copy on this device',drive:'Google Drive',ok:'Restored. Your current data was kept and the older items were added.',ask:'Restore this version? Nothing is deleted; missing highlights and notes are added back.',close:'Close',err:'Could not load versions'},
+ nl:{btn:'Eerdere versie herstellen',title:'Eerdere versie herstellen',none:'Geen eerdere versies gevonden.',local:'Reservekopie op dit toestel',drive:'Google Drive',ok:'Hersteld. Je huidige gegevens zijn bewaard en de oudere items zijn teruggezet.',ask:'Deze versie herstellen? Er wordt niets verwijderd; ontbrekende markeringen en notities komen terug.',close:'Sluiten',err:'Versies konden niet worden geladen'},
+ es:{btn:'Restaurar versión anterior',title:'Restaurar versión anterior',none:'No se encontraron versiones anteriores.',local:'Copia de seguridad en este dispositivo',drive:'Google Drive',ok:'Restaurado. Se conservaron tus datos actuales y se añadieron los elementos anteriores.',ask:'¿Restaurar esta versión? No se borra nada; se recuperan los subrayados y notas que faltan.',close:'Cerrar',err:'No se pudieron cargar las versiones'},
+ de:{btn:'Frühere Version wiederherstellen',title:'Frühere Version wiederherstellen',none:'Keine früheren Versionen gefunden.',local:'Sicherungskopie auf diesem Gerät',drive:'Google Drive',ok:'Wiederhergestellt. Deine aktuellen Daten blieben erhalten, ältere Einträge wurden hinzugefügt.',ask:'Diese Version wiederherstellen? Es wird nichts gelöscht; fehlende Markierungen und Notizen kommen zurück.',close:'Schließen',err:'Versionen konnten nicht geladen werden'}};
+function _gdrT(k){var l=(typeof LANG!=='undefined'&&_GDR_T[LANG])?LANG:'en';return _GDR_T[l][k];}
+async function gdOpenRevisions(){
+ var old=document.getElementById('gdRevOv');if(old)old.remove();
+ var ov=document.createElement('div');ov.id='gdRevOv';
+ ov.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:20px';
+ var box=document.createElement('div');
+ box.style.cssText='background:var(--paper,#fff);color:var(--ink1,#222);border-radius:16px;max-width:360px;width:100%;max-height:80vh;overflow-y:auto;padding:16px;box-shadow:0 10px 40px rgba(0,0,0,.35)';
+ ov.appendChild(box);document.body.appendChild(ov);
+ ov.addEventListener('click',function(e){if(e.target===ov)ov.remove();});
+ var h=document.createElement('div');h.textContent=_gdrT('title');h.style.cssText='font-size:15px;font-weight:700;margin-bottom:10px';box.appendChild(h);
+ var list=document.createElement('div');box.appendChild(list);
+ var cl=document.createElement('button');cl.textContent=_gdrT('close');cl.className='note-cancel';cl.style.cssText='margin-top:12px;font-size:12px;padding:7px 14px';cl.onclick=function(){ov.remove();};box.appendChild(cl);
+ function row(label,sub,fn){var d=document.createElement('div');d.style.cssText='padding:10px 12px;border:1px solid var(--paper3,#ddd);border-radius:10px;margin-bottom:8px;cursor:pointer';d.innerHTML='<div style="font-size:13px;font-weight:700">'+label+'</div><div style="font-size:11px;opacity:.7;margin-top:2px">'+sub+'</div>';d.onclick=function(){if(confirm(_gdrT('ask')))fn();};list.appendChild(d);}
+ function fmt(t){try{return new Date(t).toLocaleString();}catch(e){return String(t);}}
+ function cnt(d){try{var s=d.settings||{};return (Object.keys(s.highlights||{}).length)+' ★ · '+(Object.keys(s.notes||{}).length)+' ✎';}catch(e){return '';}}
+ ['rbBak1','rbBak2'].forEach(function(k){try{var b=JSON.parse(localStorage.getItem(k)||'null');if(b&&b.settings)row(_gdrT('local')+' — '+fmt(b.ts),cnt(b),function(){gdRestoreUserData({v:3,settings:b.settings,histList:b.histList,planProg:b.planProg,bsAnswers:b.bsAnswers});renderChapter();applyMarks();ov.remove();toast(_gdrT('ok'));try{gdUpload();}catch(e){}});}catch(e){}});
+ if(gdIsAuthed()){
+  try{
+   var id=await gdFindFile();
+   if(id){
+    var r=await fetch('https://www.googleapis.com/drive/v3/files/'+id+'/revisions?fields=revisions(id,modifiedTime,size)&pageSize=200',{headers:{'Authorization':'Bearer '+GD.TOKEN}});
+    var j=await r.json();var revs=(j.revisions||[]).slice().reverse();
+    revs.forEach(function(rv){row(_gdrT('drive')+' — '+fmt(rv.modifiedTime),Math.round((parseInt(rv.size||'0')/1024))+' KB',async function(){
+     try{var rr=await fetch('https://www.googleapis.com/drive/v3/files/'+id+'/revisions/'+rv.id+'?alt=media',{headers:{'Authorization':'Bearer '+GD.TOKEN}});var d=await rr.json();gdRestoreUserData(d);renderChapter();applyMarks();await gdUpload();ov.remove();toast(_gdrT('ok'));}catch(e){toast(_gdrT('err')+': '+e.message);}
+    });});
+   }
+  }catch(e){toast(_gdrT('err')+': '+e.message);}
+ }
+ if(!list.children.length){var n=document.createElement('div');n.textContent=_gdrT('none');n.style.cssText='font-size:12px;opacity:.7';list.appendChild(n);}
 }
 
 // Find or create the user data file in Drive appData
