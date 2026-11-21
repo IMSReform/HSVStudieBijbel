@@ -34154,6 +34154,7 @@ kill();setInterval(kill,400);
 var ots=window.toggleSplitSync;
 if(typeof ots==='function'){window.toggleSplitSync=toggleSplitSync=function(){var r=ots.apply(this,arguments);try{uSync=!!splitSyncOn;}catch(e){}kill();return r;};}
 var timer=null,anim=null,driver=null,ign={L:0,R:0};
+var lastIn=0;['touchstart','touchmove','pointerdown','wheel','keydown','mousedown'].forEach(function(e){document.addEventListener(e,function(){lastIn=performance.now();},{capture:true,passive:true});});
 function now(){return performance.now();}
 function active(){try{return !!splitActive&&uSync;}catch(e){return false;}}
 function rowsMap(id){var m={};var c=g(id);if(!c)return m;c.querySelectorAll('.vrow[data-vi]').forEach(function(r){var v=+r.dataset.vi;if(!(v in m))m[v]=r;});return m;}
@@ -34163,10 +34164,12 @@ function cancelAnim(){if(anim){anim.cancel=true;}}
 function live(src,dst,dw){
  var range=src.scrollHeight-src.clientHeight,pct=range>0?src.scrollTop/range:0;
  var dr=dst.scrollHeight-dst.clientHeight;
- ign[dw]=now()+90;dst.scrollTop=pct*dr;
+ var tgt=pct*dr;if(Math.abs(tgt-dst.scrollTop)<2)return;
+ ign[dw]=now()+160;dst.scrollTop=tgt;
 }
 function onScroll(w){return function(){
  if(now()<ign[w])return;
+ if(now()-lastIn>4000)return; /* only react to real user scrolling, never to reflow after a rotation */
  if(!active())return;
  cancelAnim();
  driver=w;
