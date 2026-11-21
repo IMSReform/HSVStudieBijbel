@@ -33901,5 +33901,89 @@ if(typeof rp==='function'){
 }
 })();
 </script>
+<script>/*LANDFIX*/
+(function(){
+var st=document.createElement('style');
+st.textContent='body.land #tbar{position:relative;z-index:60}#bgL,#bgR{z-index:1}';
+document.head.appendChild(st);
+})();
+</script>
+<script>/*THEMES*/
+(function(){
+function g(i){return document.getElementById(i);}
+var TH={
+ r:{n:{en:'Rose',es:'Rosa',nl:'Roze',de:'Rosa'},
+  L:'--c1:#8c2f4b;--c2:#c9577a;--c3:#e0769a;--c5:#fdf5f7;--c6:#f8e8ed;--br:#ead3da;--tx:#3a2530;--mu:#96707f;--paper:#fcf1f4;--paper2:#f7ede8;--paper3:#ead3da;--ink:#3a2530;--ink2:#5a3a48;--ink3:#96707f;--teal:#b84468;--teal2:#e0769a;--teal3:#fbe3ea;--tb1:#6e2339;--tb2:#a8405f;--hd1:#5a1b2f;--hd2:#8c2f4b;--hd3:#b84468;',
+  D:'--c5:#2a141c;--c6:#33191f;--br:#4a2a36;--tx:#f0dde3;--mu:#b08a98;--paper:#2a141c;--paper2:#231016;--paper3:#3a2029;--ink:#f0dde3;--ink2:#d8b8c4;--ink3:#b08a98;--teal:#e87a9c;--teal2:#f2a5b8;--teal3:#3a1a26;--tb1:#2e0f1a;--tb2:#5a2238;--hd1:#3a1220;--hd2:#4d1a2c;--hd3:#6a2840;--pop:#4a2230;--popa:rgba(74,34,48,.78);--pop2:#3a1c27;',
+  sw:'#8c2f4b,#e0769a'},
+ s:{n:{en:'Sage',es:'Salvia',nl:'Salie',de:'Salbei'},
+  L:'--c1:#2f5d50;--c2:#5f8f7a;--c3:#7fae8c;--c5:#f5f9f3;--c6:#e8f0e5;--br:#d6e2d3;--tx:#1f3a30;--mu:#6f8f7c;--paper:#f1f6ef;--paper2:#f6f3ea;--paper3:#d6e2d3;--ink:#1f3a30;--ink2:#35574a;--ink3:#6f8f7c;--teal:#3f7a62;--teal2:#7fae8c;--teal3:#dcebdc;--tb1:#244a3f;--tb2:#4a7a66;--hd1:#1b3b31;--hd2:#2f5d50;--hd3:#4a7a66;',
+  D:'--c5:#152720;--c6:#1a2f27;--br:#2c4a3d;--tx:#e0ece4;--mu:#8fb09c;--paper:#152720;--paper2:#10201a;--paper3:#26413a;--ink:#e0ece4;--ink2:#bcd4c4;--ink3:#8fb09c;--teal:#7fb598;--teal2:#a8c9a0;--teal3:#1d3a2c;--tb1:#0f1f18;--tb2:#25473a;--hd1:#14291f;--hd2:#1b382b;--hd3:#25473a;--pop:#1f3a2e;--popa:rgba(31,58,46,.78);--pop2:#1a3026;',
+  sw:'#2f5d50,#a8c9a0'},
+ l:{n:{en:'Lavender',es:'Lavanda',nl:'Lavendel',de:'Lavendel'},
+  L:'--c1:#4b3a7a;--c2:#8a6fc0;--c3:#a98ee0;--c5:#f8f5fc;--c6:#eee8f8;--br:#ddd5ee;--tx:#2c2442;--mu:#8a7fa6;--paper:#f4f1fa;--paper2:#f6f2ec;--paper3:#ddd5ee;--ink:#2c2442;--ink2:#473c68;--ink3:#8a7fa6;--teal:#6a52a8;--teal2:#a98ee0;--teal3:#e8e0f6;--tb1:#3a2c63;--tb2:#6a52a8;--hd1:#2c2150;--hd2:#4b3a7a;--hd3:#6a52a8;',
+  D:'--c5:#1b1530;--c6:#211a3a;--br:#3a3058;--tx:#e8e2f4;--mu:#a398c4;--paper:#1b1530;--paper2:#16112a;--paper3:#2e2650;--ink:#e8e2f4;--ink2:#c9c0e0;--ink3:#a398c4;--teal:#a78fe0;--teal2:#c9b6ef;--teal3:#2a2148;--tb1:#150f28;--tb2:#3b2d63;--hd1:#1e1636;--hd2:#2a2048;--hd3:#3b2d63;--pop:#33295a;--popa:rgba(51,41,90,.78);--pop2:#271f48;',
+  sw:'#4b3a7a,#c9b6ef'},
+ o:{n:{en:'Ocean',es:'Océano',nl:'Oceaan',de:'Ozean'},sw:'#0d4f6c,#2ec4b6'}
+};
+var css='';
+Object.keys(TH).forEach(function(k){
+ if(!TH[k].L)return;
+ css+='html[data-theme="'+k+'"]{'+TH[k].L+'}html[data-theme="'+k+'"] body.dark{'+TH[k].D+'}';
+});
+css+='html[data-theme] #tbar{background:linear-gradient(135deg,var(--tb1),var(--tb2))!important}'+
+ 'html[data-theme] .hdr{background:linear-gradient(135deg,var(--hd1),var(--hd2),var(--hd3))!important}'+
+ 'html[data-theme]{background:var(--hd1)}'+
+ 'html[data-theme] body:not(.land){background-image:linear-gradient(to bottom,var(--hd1) 0,var(--hd1) calc(env(safe-area-inset-top,0px) + 88px),transparent calc(env(safe-area-inset-top,0px) + 88px))}'+
+ 'html[data-theme] body.dark #settdrop,html[data-theme] body.dark .split-trans-menu{background:var(--pop)!important}'+
+ 'html[data-theme] body.dark .nav{background:var(--popa)!important}'+
+ 'html[data-theme] body.dark #splitPane,html[data-theme] body.dark .split-scroll,html[data-theme] body.dark .split-pane-hdr{background:var(--paper2)!important}'+
+ 'html[data-theme] body.dark .vac,html[data-theme] body.dark .vac-panes{background:var(--pop2)}'+
+ '.th-row{display:flex;gap:12px;align-items:center}.th-sw{width:30px;height:30px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0;box-shadow:0 1px 4px rgba(0,0,0,.25)}.th-sw.on{border-color:var(--ink,#222);outline:2px solid var(--paper,#fff);outline-offset:-5px}';
+var st=document.createElement('style');st.textContent=css;document.head.appendChild(st);
+
+function lang(){try{return LANG;}catch(e){return 'en';}}
+function apply(k){
+ var h=document.documentElement;
+ if(!k||k==='o')h.removeAttribute('data-theme');else h.setAttribute('data-theme',k);
+ try{localStorage.setItem('rbTheme',k||'o');}catch(e){}
+ document.querySelectorAll('.th-sw').forEach(function(b){b.classList.toggle('on',b.dataset.k===(k||'o'));});
+ try{var m=document.querySelector('meta[name="theme-color"]');if(m){var cs=getComputedStyle(h).getPropertyValue('--c1').trim();if(cs)m.setAttribute('content',cs);}}catch(e){}
+ try{if(typeof paint==='function')setTimeout(paint,50);}catch(e){}
+}
+window.setTheme=apply;
+var saved='o';try{saved=localStorage.getItem('rbTheme')||'o';}catch(e){}
+apply(saved);
+
+var LBL={en:'Colour theme',es:'Tema de color',nl:'Kleurthema',de:'Farbthema'};
+function build(){
+ var btn=g('darkToggleBtn');if(!btn||g('thRow'))return;
+ var sec=btn.closest('.sd-sec');if(!sec)return;
+ var n=document.createElement('div');n.className='sd-sec';n.id='thSec';
+ var lb=document.createElement('div');lb.className='sd-lbl';lb.id='thLbl';lb.textContent=LBL[lang()]||LBL.en;
+ var row=document.createElement('div');row.className='th-row';row.id='thRow';
+ ['o','r','s','l'].forEach(function(k){
+  var b=document.createElement('button');b.type='button';b.className='th-sw'+(k===saved?' on':'');b.dataset.k=k;
+  b.title=TH[k].n[lang()]||TH[k].n.en;
+  var c=TH[k].sw.split(',');b.style.background='linear-gradient(135deg,'+c[0]+' 50%,'+c[1]+' 50%)';
+  b.onclick=function(){saved=k;apply(k);};
+  row.appendChild(b);
+ });
+ n.appendChild(lb);n.appendChild(row);
+ sec.parentNode.insertBefore(n,sec.nextSibling);
+}
+build();setTimeout(build,1500);
+var tl=window.setLang;
+if(typeof tl==='function'){window.setLang=setLang=function(){var r=tl.apply(this,arguments);try{var l=g('thLbl');if(l)l.textContent=LBL[lang()]||LBL.en;document.querySelectorAll('.th-sw').forEach(function(b){b.title=TH[b.dataset.k].n[lang()]||TH[b.dataset.k].n.en;});}catch(e){}return r;};}
+})();
+</script>
+<script>/*LANDFIX2*/
+(function(){
+var st=document.createElement('style');
+st.textContent='body.land.chrome-hidden #tbar{height:0!important;min-height:0!important;margin-top:0!important;padding-top:0!important;padding-bottom:0!important;overflow:hidden!important;opacity:0;pointer-events:none}'+
+'body.land.chrome-hidden{background-image:none!important}';
+document.head.appendChild(st);
+})();
+</script>
 </body>
 </html>
