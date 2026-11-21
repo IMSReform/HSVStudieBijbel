@@ -34162,8 +34162,16 @@ function snap(){
  var delta=or-tr;
  if(Math.abs(delta)<2)return;
  snapping=true;var prev=splitSyncOn;splitSyncOn=false;
- try{oC.scrollBy({top:delta,behavior:'smooth'});}catch(e){oC.scrollTop+=delta;}
- setTimeout(function(){splitSyncOn=prev;snapping=false;},650);
+ var s0=oC.scrollTop,t0=performance.now(),D=Math.min(1100,520+Math.abs(delta)*1.2),cancel=false,NORM=1-Math.exp(-5.5)*6.5;
+ function stop(){cancel=true;}
+ oC.addEventListener('touchstart',stop,{once:true,passive:true});
+ function fin(){splitSyncOn=prev;snapping=false;oC.removeEventListener('touchstart',stop);}
+ (function step(now){
+  if(cancel){fin();return;}
+  var t=Math.min(1,(now-t0)/D),k=5.5*t,e=(1-Math.exp(-k)*(1+k))/NORM;
+  oC.scrollTop=s0+delta*e;
+  if(t<1)requestAnimationFrame(step);else fin();
+ })(t0);
 }
 function on(which){return function(){if(snapping)return;driver=which;clearTimeout(timer);timer=setTimeout(snap,220);};}
 Lc.addEventListener('scroll',on('L'),{passive:true});
@@ -34178,5 +34186,6 @@ st.textContent='#splitVerses{padding-bottom:calc(110px + var(--safe,0px) + env(s
 document.head.appendChild(st);
 })();
 </script>
+<script>/*GUMPAD*/(function(){var st=document.createElement('style');st.textContent='body.split-tall #chapterScroll{padding-bottom:12px!important}';document.head.appendChild(st);})();</script>
 </body>
 </html>
