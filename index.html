@@ -24990,7 +24990,7 @@ function initCmntTouchSelect(){
  var dx=e.clientX-tp.sx,dy=e.clientY-tp.sy;
  if(!tp.engaged&&!tp.scrolling){
  if(Math.abs(dx)>10&&Math.abs(dx)>Math.abs(dy)*1.15){clearTimeout(tp.timer);if(!engage(tp,tp.sx,tp.sy)){reset();return;}}
- else if(Math.abs(dy)>8&&Math.abs(dy)>Math.abs(dx)*1.2){clearTimeout(tp.timer);tp.scrolling=true;tp.lastY=tp.sy;}
+ else if(Math.abs(dy)>8&&Math.abs(dy)>Math.abs(dx)*1.2){clearTimeout(tp.timer);reset();return;/*CMNTSCROLL native*/}
  else return;
  }
  e.preventDefault();
@@ -34209,5 +34209,5 @@ document.head.appendChild(st);
 })();
 </script>
 <script>/*GUMPAD*/(function(){var st=document.createElement('style');st.textContent='body.split-tall #chapterScroll{padding-bottom:12px!important}';document.head.appendChild(st);})();</script>
-</body>
+<style>/*CMNTSCROLL*/@media (pointer:coarse){#cmntList [data-cmnt-vi]{touch-action:pan-y!important}}#cmntList{-webkit-overflow-scrolling:touch;overscroll-behavior:contain}#cmntList [data-cmnt-vi]{content-visibility:auto;contain-intrinsic-size:auto 160px}</style></body>
 </html>
