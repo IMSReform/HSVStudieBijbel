@@ -34152,7 +34152,7 @@ var uSync=true;try{uSync=!!splitSyncOn;}catch(e){}
 function kill(){try{splitSyncOn=false;}catch(e){}}
 kill();setInterval(kill,400);
 var ots=window.toggleSplitSync;
-if(typeof ots==='function'){window.toggleSplitSync=toggleSplitSync=function(){var r=ots.apply(this,arguments);try{uSync=!!splitSyncOn;}catch(e){}kill();return r;};}
+if(typeof ots==='function'){window.toggleSplitSync=toggleSplitSync=function(){try{splitSyncOn=uSync;}catch(e){}var r=ots.apply(this,arguments);try{uSync=!!splitSyncOn;}catch(e){}kill();return r;/*SYNCFIX*/};}
 var timer=null,anim=null,driver=null,ign={L:0,R:0};
 var lastIn=0;['touchstart','touchmove','pointerdown','wheel','keydown','mousedown'].forEach(function(e){document.addEventListener(e,function(){lastIn=performance.now();},{capture:true,passive:true});});
 function now(){return performance.now();}
@@ -34209,5 +34209,5 @@ document.head.appendChild(st);
 })();
 </script>
 <script>/*GUMPAD*/(function(){var st=document.createElement('style');st.textContent='body.split-tall #chapterScroll{padding-bottom:12px!important}';document.head.appendChild(st);})();</script>
-<style>/*CMNTSCROLL*/@media (pointer:coarse){#cmntList [data-cmnt-vi]{touch-action:pan-y!important}}#cmntList{-webkit-overflow-scrolling:touch;overscroll-behavior:contain}#cmntList [data-cmnt-vi]{content-visibility:auto;contain-intrinsic-size:auto 160px}</style></body>
+<style>/*CMNTSCROLL*/@media (pointer:coarse){#cmntList [data-cmnt-vi]{touch-action:pan-y!important}}#cmntList{-webkit-overflow-scrolling:touch;overscroll-behavior:contain}#cmntList [data-cmnt-vi]{content-visibility:auto;contain-intrinsic-size:auto 160px}</style><style>/*SHEETZ*/body:has(.sheet.open) #splitDragHandle,body:has(.sheet.open) .split-pull,body:has(.sheet.open) #splitPane .split-pane-hdr,body:has(.sheet.open) #splitTransBtn,body:has(.sheet.open) #splitTransLbl{z-index:1!important;visibility:hidden!important}</style></body>
 </html>
