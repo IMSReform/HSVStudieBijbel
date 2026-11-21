@@ -34060,5 +34060,80 @@ css+='html[data-theme] .vac{background:var(--teal3)!important;border-color:var(-
 var st=document.createElement('style');st.textContent=css;document.head.appendChild(st);
 })();
 </script>
+<script>/*ALIGN*/
+(function(){
+function g(i){return document.getElementById(i);}
+/* ---- 1. edge strips: take the colour from the pane itself, never from a pop-up on top of it ---- */
+var st=document.createElement('style');
+st.textContent='#bgL2,#bgR2{display:none!important}#bgL3,#bgR3{position:fixed;top:0;bottom:0;z-index:2;pointer-events:none;width:env(safe-area-inset-left,0px);left:0}#bgR3{width:env(safe-area-inset-right,0px);left:auto;right:0}'+
+ '#splitChT{display:none}body.split-wide #splitChT{display:block}';
+document.head.appendChild(st);
+var L3=document.createElement('div'),R3=document.createElement('div');L3.id='bgL3';R3.id='bgR3';document.body.appendChild(L3);document.body.appendChild(R3);
+function chainBg(el){
+ while(el){try{var c=getComputedStyle(el).backgroundColor;if(c&&c!=='rgba(0, 0, 0, 0)'&&c!=='transparent')return c;}catch(e){}el=el.parentElement;}
+ return getComputedStyle(document.body).backgroundColor;
+}
+function wideOn(){return document.body.classList.contains('split-wide');}
+function paintEdges(){
+ var lc=chainBg(g('chapterScroll')||document.body);
+ var rc=wideOn()?chainBg(g('splitScroll')||g('splitVerses')||g('splitPane')):lc;
+ L3.style.background=lc;R3.style.background=rc;
+}
+/* ---- 2. title block on the right pane (book + version) ---- */
+function title(){
+ var sc=g('splitScroll'),sv=g('splitVerses');if(!sc||!sv)return;
+ var t=g('splitChT');
+ if(!t){t=document.createElement('div');t.id='splitChT';t.className='ch-title';t.innerHTML='<h2></h2><p></p>';sc.insertBefore(t,sv);}
+ var ref=(g('splitRef')||{}).textContent||'';
+ var nm='';try{nm=(TRANS_LABELS[SPLIT_TRANS]||{}).name||'';}catch(e){}
+ var h=t.querySelector('h2'),p=t.querySelector('p');
+ if(h.textContent!==ref)h.textContent=ref;if(p.textContent!==nm)p.textContent=nm;
+}
+/* ---- 3. verse-by-verse alignment of the two panes ---- */
+function startOf(row){
+ var b=row;
+ while(b.previousElementSibling&&b.previousElementSibling.classList.contains('sec-head'))b=b.previousElementSibling;
+ return b;
+}
+function rowsOf(c){
+ var m={};
+ if(!c)return m;
+ c.querySelectorAll('.vrow[data-vi]').forEach(function(r){var v=+r.dataset.vi;if(!(v in m))m[v]=r;});
+ return m;
+}
+var busy=false;
+function align(){
+ if(busy)return;busy=true;
+ try{
+  document.querySelectorAll('[data-al]').forEach(function(e){e.style.marginTop='';e.removeAttribute('data-al');});
+  title();paintEdges();
+  var on=false;try{on=!!splitActive;}catch(e){}
+  if(!on||!wideOn())return;
+  var Lc=g('chapterScroll'),Rc=g('splitScroll');
+  var LR=rowsOf(g('verses')),RR=rowsOf(g('splitVerses'));
+  var ks=Object.keys(LR).filter(function(k){return k in RR;}).map(Number).sort(function(a,b){return a-b;});
+  function y(el,c){return el.getBoundingClientRect().top+c.scrollTop;}
+  ks.forEach(function(k){
+   var a=LR[k],b=RR[k];
+   var d=y(a,Lc)-y(b,Rc);
+   if(Math.abs(d)<1)return;
+   var tgt=d>0?startOf(b):startOf(a);
+   var cur=parseFloat(getComputedStyle(tgt).marginTop)||0;
+   tgt.style.marginTop=(cur+Math.abs(d))+'px';tgt.setAttribute('data-al','1');
+  });
+ }catch(e){}finally{busy=false;}
+}
+var tm=null;function sched(){clearTimeout(tm);tm=setTimeout(align,90);}
+['verses','splitVerses'].forEach(function(id){var e=g(id);if(e)try{new MutationObserver(sched).observe(e,{childList:true,subtree:true});}catch(er){}});
+try{new MutationObserver(sched).observe(document.body,{attributes:true,attributeFilter:['class']});}catch(e){}
+['splitRef'].forEach(function(id){var e=g(id);if(e)try{new MutationObserver(sched).observe(e,{childList:true,characterData:true,subtree:true});}catch(er){}});
+addEventListener('resize',sched);addEventListener('orientationchange',function(){setTimeout(sched,250);});
+['setFS','stepFS','toggleSplit','renderSplit','renderChapter','applySplitOrientation','toggleDarkMode','setTheme','setSplitTrans'].forEach(function(n){
+ var f=window[n];if(typeof f==='function')window[n]=function(){var r=f.apply(this,arguments);setTimeout(sched,140);return r;};
+});
+setInterval(paintEdges,900);
+align();
+})();
+</script>
 </body>
 </html>
