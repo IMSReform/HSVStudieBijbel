@@ -34142,41 +34142,60 @@ st.textContent='#tbarScroll>#strongsToggle{align-self:center!important;min-heigh
 document.head.appendChild(st);
 })();
 </script>
-<script>/*SNAP*/
+<script>/*SNAP*/ /*SNAP2*/
 (function(){
 function g(i){return document.getElementById(i);}
 var Lc=g('chapterScroll'),Rc=g('splitScroll');if(!Lc||!Rc)return;
-var timer=null,snapping=false,driver=null;
-function wide(){return document.body.classList.contains('split-wide');}
+/* we take over the scroll coupling completely: the old percentage sync is switched off,
+   so only ONE pane ever moves for a given scroll. */
+var uSync=true;try{uSync=!!splitSyncOn;}catch(e){}
+function kill(){try{splitSyncOn=false;}catch(e){}}
+kill();setInterval(kill,400);
+var ots=window.toggleSplitSync;
+if(typeof ots==='function'){window.toggleSplitSync=toggleSplitSync=function(){var r=ots.apply(this,arguments);try{uSync=!!splitSyncOn;}catch(e){}kill();return r;};}
+var timer=null,anim=null,driver=null,ign={L:0,R:0};
+function now(){return performance.now();}
+function active(){try{return !!splitActive&&uSync;}catch(e){return false;}}
 function rowsMap(id){var m={};var c=g(id);if(!c)return m;c.querySelectorAll('.vrow[data-vi]').forEach(function(r){var v=+r.dataset.vi;if(!(v in m))m[v]=r;});return m;}
+function other(w){return w==='L'?Rc:Lc;}
+function cont(w){return w==='L'?Lc:Rc;}
+function cancelAnim(){if(anim){anim.cancel=true;}}
+function live(src,dst,dw){
+ var range=src.scrollHeight-src.clientHeight,pct=range>0?src.scrollTop/range:0;
+ var dr=dst.scrollHeight-dst.clientHeight;
+ ign[dw]=now()+90;dst.scrollTop=pct*dr;
+}
+function onScroll(w){return function(){
+ if(now()<ign[w])return;
+ if(!active())return;
+ cancelAnim();
+ driver=w;
+ live(cont(w),other(w),w==='L'?'R':'L');
+ clearTimeout(timer);timer=setTimeout(snap,220);
+};}
 function snap(){
- var on=false;try{on=!!splitActive&&splitSyncOn;}catch(e){}
- if(!on||snapping||!driver)return;
- var dC=driver==='L'?Lc:Rc,oC=driver==='L'?Rc:Lc;
- var dRows=rowsMap(driver==='L'?'verses':'splitVerses'),oRows=rowsMap(driver==='L'?'splitVerses':'verses');
+ if(!active()||!driver||anim)return;
+ var w=driver,dC=cont(w),oC=other(w),ow=w==='L'?'R':'L';
+ var dRows=rowsMap(w==='L'?'verses':'splitVerses'),oRows=rowsMap(w==='L'?'splitVerses':'verses');
  var top=dC.getBoundingClientRect().top,pick=null,keys=Object.keys(dRows).map(Number).sort(function(a,b){return a-b;});
- for(var i=0;i<keys.length;i++){var r=dRows[keys[i]];if(r.getBoundingClientRect().bottom>top+6){pick=keys[i];break;}}
+ for(var i=0;i<keys.length;i++){if(dRows[keys[i]].getBoundingClientRect().bottom>top+6){pick=keys[i];break;}}
  if(pick===null||!(pick in oRows))return;
  var tr=dRows[pick].getBoundingClientRect().top-top;
- var or=oRows[pick].getBoundingClientRect().top-oC.getBoundingClientRect().top;
- var delta=or-tr;
+ var orr=oRows[pick].getBoundingClientRect().top-oC.getBoundingClientRect().top;
+ var delta=orr-tr;
  if(Math.abs(delta)<2)return;
- snapping=true;var prev=splitSyncOn;splitSyncOn=false;
- var s0=oC.scrollTop,t0=performance.now(),D=Math.min(1100,520+Math.abs(delta)*1.2),cancel=false,NORM=1-Math.exp(-5.5)*6.5;
- function stop(){cancel=true;}
- oC.addEventListener('touchstart',stop,{once:true,passive:true});
- function fin(){splitSyncOn=prev;snapping=false;oC.removeEventListener('touchstart',stop);}
- (function step(now){
-  if(cancel){fin();return;}
-  var t=Math.min(1,(now-t0)/D),k=5.5*t,e=(1-Math.exp(-k)*(1+k))/NORM;
-  oC.scrollTop=s0+delta*e;
-  if(t<1)requestAnimationFrame(step);else fin();
+ var s0=oC.scrollTop,t0=now(),D=Math.min(1100,520+Math.abs(delta)*1.2),NORM=1-Math.exp(-5.5)*6.5;
+ var a={cancel:false};anim=a;
+ oC.addEventListener('touchstart',function(){a.cancel=true;},{once:true,passive:true});
+ (function step(t){
+  if(a.cancel){anim=null;ign[ow]=now()+150;return;}
+  var p=Math.min(1,(t-t0)/D),k=5.5*p,e=(1-Math.exp(-k)*(1+k))/NORM;
+  ign[ow]=now()+120;oC.scrollTop=s0+delta*e;
+  if(p<1)requestAnimationFrame(step);else{anim=null;ign[ow]=now()+200;}
  })(t0);
 }
-function on(which){return function(){if(snapping)return;driver=which;clearTimeout(timer);timer=setTimeout(snap,220);};}
-Lc.addEventListener('scroll',on('L'),{passive:true});
-Rc.addEventListener('scroll',on('R'),{passive:true});
-window._snapNow=snap;
+Lc.addEventListener('scroll',onScroll('L'),{passive:true});
+Rc.addEventListener('scroll',onScroll('R'),{passive:true});
 })();
 </script>
 <script>/*BOTPAD*/
